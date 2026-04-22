@@ -158,15 +158,32 @@ export function Hero({ totals, rate, onRateClick }: Props) {
           style={{
             minWidth: 0,
             padding: "10px 12px",
-            background: "#F2F4F6",
+            background: "var(--pc-tint)",
             borderRadius: 12,
             border: "none",
             cursor: "pointer",
             gap: 2,
+            position: "relative",
           }}
         >
-          <span style={{ fontSize: 11, color: "#8B95A1", fontWeight: 500 }}>
+          <span
+            className="flex items-center"
+            style={{
+              fontSize: 11,
+              color: "var(--pc)",
+              fontWeight: 600,
+              gap: 3,
+            }}
+          >
             연 할인율
+            <svg width="10" height="10" viewBox="0 0 12 12" fill="none">
+              <path
+                d="M8.5 2l1.5 1.5-6 6-2 .5.5-2 6-6z"
+                stroke="var(--pc)"
+                strokeWidth="1.4"
+                strokeLinejoin="round"
+              />
+            </svg>
           </span>
           <span
             className="overflow-hidden text-ellipsis whitespace-nowrap"
@@ -184,8 +201,9 @@ export function Hero({ totals, rate, onRateClick }: Props) {
                 style={{
                   fontSize: 11,
                   fontWeight: 500,
-                  color: "#8B95A1",
+                  color: "var(--pc)",
                   marginLeft: 4,
+                  opacity: 0.7,
                 }}
               >
                 실효 {(effS * 100).toFixed(1)}%
