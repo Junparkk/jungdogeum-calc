@@ -107,11 +107,6 @@ export function HelpSheet({ open, onClose }: Props) {
         </div>
       </Section>
 
-      <Section title="저장은 어디에?">
-        같은 기기 안에서만 저장돼요 (토스 인앱은 토스 Storage, 웹은
-        브라우저 localStorage). 다른 기기에서는 다시 입력해야 하고, 토스
-        앱이나 브라우저를 지우면 데이터도 사라집니다.
-      </Section>
     </BottomSheet>
   );
 }
