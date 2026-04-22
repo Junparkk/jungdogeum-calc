@@ -1,18 +1,19 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { Payment, Schedule } from "@/lib/calc";
-import {
-  calcCredit,
-  daysBetween,
-  effectiveCompound,
-  effectiveSimple,
-} from "@/lib/calc";
+import { calcCredit, daysBetween } from "@/lib/calc";
 import { clearState, loadState, saveState } from "@/lib/storage";
-import { Header } from "@/components/Header";
-import { ScheduleSection } from "@/components/ScheduleSection";
-import { PaymentSection } from "@/components/PaymentSection";
-import { SummarySection } from "@/components/SummarySection";
-import { RateAnalysis } from "@/components/RateAnalysis";
-import { PaymentsTable } from "@/components/PaymentsTable";
+import { TopBar } from "@/components/TopBar";
+import { Hero } from "@/components/Hero";
+import { ScheduleCard } from "@/components/ScheduleCard";
+import { Fab } from "@/components/Fab";
+import { PrimaryButton } from "@/components/ui/PrimaryButton";
+import { AddScheduleSheet } from "@/components/sheets/AddScheduleSheet";
+import { AddPaymentSheet } from "@/components/sheets/AddPaymentSheet";
+import { AddBulkSheet } from "@/components/sheets/AddBulkSheet";
+import { RateSheet } from "@/components/sheets/RateSheet";
+import { MenuSheet } from "@/components/sheets/MenuSheet";
+
+type SheetKind = null | "sch" | "pay" | "bulk" | "rate" | "menu";
 
 type PersistedState = {
   schedules: Schedule[];
@@ -22,43 +23,36 @@ type PersistedState = {
   payIdCounter: number;
 };
 
-// rate는 퍼센트 값으로 저장 (예: 5 = 5%) — 원본 HTML과 동일.
-// 계산 함수 호출 시 rate/100으로 변환.
 const DEFAULT_STATE: PersistedState = {
   schedules: [],
   payments: [],
-  rate: 5,
+  rate: 0.05,
   schIdCounter: 1,
   payIdCounter: 1,
 };
 
-function sortSchedules(s: Schedule[]) {
-  return [...s].sort((a, b) => a.date.localeCompare(b.date));
-}
-function sortPayments(p: Payment[]) {
-  return [...p].sort((a, b) => a.date.localeCompare(b.date));
-}
-
 function App() {
-  const [schedules, setSchedules] = useState<Schedule[]>(DEFAULT_STATE.schedules);
-  const [payments, setPayments] = useState<Payment[]>(DEFAULT_STATE.payments);
-  const [rate, setRate] = useState<number>(DEFAULT_STATE.rate);
-  const schIdRef = useRef(DEFAULT_STATE.schIdCounter);
-  const payIdRef = useRef(DEFAULT_STATE.payIdCounter);
   const [loaded, setLoaded] = useState(false);
+  const [schedules, setSchedules] = useState<Schedule[]>([]);
+  const [payments, setPayments] = useState<Payment[]>([]);
+  const [rate, setRate] = useState(0.05);
+  const [schIdCounter, setSchIdCounter] = useState(1);
+  const [payIdCounter, setPayIdCounter] = useState(1);
 
-  // 최초 복원
+  const [sheet, setSheet] = useState<SheetKind>(null);
+  const [sheetSch, setSheetSch] = useState<Schedule | null>(null);
+
+  // 복원
   useEffect(() => {
     let cancelled = false;
     loadState<PersistedState>().then((saved) => {
       if (cancelled) return;
-      if (saved) {
-        setSchedules(saved.schedules ?? []);
-        setPayments(saved.payments ?? []);
-        setRate(typeof saved.rate === "number" ? saved.rate : 5);
-        schIdRef.current = saved.schIdCounter ?? 1;
-        payIdRef.current = saved.payIdCounter ?? 1;
-      }
+      const s = saved ?? DEFAULT_STATE;
+      setSchedules(s.schedules ?? []);
+      setPayments(s.payments ?? []);
+      setRate(typeof s.rate === "number" ? s.rate : 0.05);
+      setSchIdCounter(s.schIdCounter ?? 1);
+      setPayIdCounter(s.payIdCounter ?? 1);
       setLoaded(true);
     });
     return () => {
@@ -66,193 +60,238 @@ function App() {
     };
   }, []);
 
-  // 변경 시 자동 저장 (복원 끝난 뒤에만)
+  // 자동 저장
   useEffect(() => {
     if (!loaded) return;
     saveState<PersistedState>({
       schedules,
       payments,
       rate,
-      schIdCounter: schIdRef.current,
-      payIdCounter: payIdRef.current,
+      schIdCounter,
+      payIdCounter,
     }).catch(() => {});
-  }, [schedules, payments, rate, loaded]);
+  }, [loaded, schedules, payments, rate, schIdCounter, payIdCounter]);
 
-  const handleAddSchedule = (
-    name: string,
-    date: string,
-    amt: number,
-  ): string | null => {
-    const id = schIdRef.current++;
-    setSchedules((prev) => sortSchedules([...prev, { id, name, date, amt }]));
-    return null;
-  };
-
-  const handleRemoveSchedule = (id: number) => {
-    setSchedules((prev) => prev.filter((s) => s.id !== id));
-    setPayments((prev) => prev.filter((p) => p.schId !== id));
-  };
-
-  const handleAddSingle = (
-    schId: number,
-    date: string,
-    amt: number,
-  ): string | null => {
-    const sch = schedules.find((s) => s.id === schId);
-    if (!sch) return "중도금을 찾을 수 없습니다.";
-    if (date >= sch.date) return "납부일은 기준일보다 이전이어야 합니다.";
-    const id = payIdRef.current++;
-    setPayments((prev) =>
-      sortPayments([
-        ...prev,
-        { id, schId, schName: sch.name, date, amt, bulk: false },
-      ]),
+  const addSchedule = (sch: Omit<Schedule, "id">) => {
+    setSchedules(
+      [...schedules, { ...sch, id: schIdCounter }].sort((a, b) =>
+        a.date.localeCompare(b.date),
+      ),
     );
-    return null;
+    setSchIdCounter(schIdCounter + 1);
   };
+  const removeSchedule = (id: number) => {
+    setSchedules(schedules.filter((s) => s.id !== id));
+    setPayments(payments.filter((p) => p.schId !== id));
+  };
+  const addPayment = (pay: Omit<Payment, "id">) => {
+    setPayments(
+      [...payments, { ...pay, id: payIdCounter }].sort((a, b) =>
+        a.date.localeCompare(b.date),
+      ),
+    );
+    setPayIdCounter(payIdCounter + 1);
+  };
+  const addBulkPayments = (pays: Omit<Payment, "id">[]) => {
+    let counter = payIdCounter;
+    const newPays = pays.map((p) => ({ ...p, id: counter++ }));
+    setPayments(
+      [...payments, ...newPays].sort((a, b) => a.date.localeCompare(b.date)),
+    );
+    setPayIdCounter(counter);
+  };
+  const removePayment = (id: number) =>
+    setPayments(payments.filter((p) => p.id !== id));
 
-  const handleAddBulk = (
-    schId: number,
-    startMonth: string,
-    endMonth: string,
-    day: string,
-    amt: number,
-  ): string | null => {
-    const sch = schedules.find((s) => s.id === schId);
-    if (!sch) return "중도금을 찾을 수 없습니다.";
-    if (startMonth > endMonth) return "시작 월이 종료 월보다 늦습니다.";
-
-    const [sy, sm] = startMonth.split("-").map(Number);
-    const [ey, em] = endMonth.split("-").map(Number);
-    const dd = day.padStart(2, "0");
-    const newOnes: Payment[] = [];
-    let y = sy,
-      m = sm;
-    while (y < ey || (y === ey && m <= em)) {
-      const dateStr = `${y}-${String(m).padStart(2, "0")}-${dd}`;
-      if (dateStr < sch.date) {
-        newOnes.push({
-          id: payIdRef.current++,
-          schId,
-          schName: sch.name,
-          date: dateStr,
-          amt,
-          bulk: true,
-        });
-      }
-      m++;
-      if (m > 12) {
-        m = 1;
-        y++;
-      }
+  const totals = useMemo(() => {
+    let totalPaid = 0;
+    let totalCredit = 0;
+    let sumDays = 0;
+    let sumAmt = 0;
+    for (const p of payments) {
+      const sch = schedules.find((s) => s.id === p.schId);
+      if (!sch) continue;
+      const days = daysBetween(p.date, sch.date);
+      const c = calcCredit(p.amt, days, rate);
+      totalPaid += p.amt;
+      totalCredit += c;
+      sumDays += days * p.amt;
+      sumAmt += p.amt;
     }
-    if (newOnes.length === 0) {
-      return "기준일 이전에 해당하는 날짜가 없습니다.";
-    }
-    setPayments((prev) => sortPayments([...prev, ...newOnes]));
-    return null;
-  };
+    const totalScheduled = schedules.reduce((a, s) => a + s.amt, 0);
+    return {
+      totalPaid,
+      totalCredit,
+      totalScheduled,
+      totalDiscount: Math.max(0, totalCredit - totalPaid),
+      avgDays: sumAmt > 0 ? sumDays / sumAmt : 0,
+    };
+  }, [schedules, payments, rate]);
 
-  const handleRemovePayment = (id: number) => {
-    setPayments((prev) => prev.filter((p) => p.id !== id));
+  const openAddPay = (sch: Schedule) => {
+    setSheetSch(sch);
+    setSheet("pay");
   };
-
-  const handleClearPayments = () => {
-    setPayments([]);
+  const openAddBulk = (sch: Schedule) => {
+    setSheetSch(sch);
+    setSheet("bulk");
   };
+  const close = () => setSheet(null);
 
   const handleReset = () => {
     setSchedules([]);
     setPayments([]);
-    setRate(5);
-    schIdRef.current = 1;
-    payIdRef.current = 1;
+    setRate(0.05);
+    setSchIdCounter(1);
+    setPayIdCounter(1);
     clearState().catch(() => {});
   };
 
-  const summary = useMemo(() => {
-    const rateDec = rate / 100;
-    let totalPaid = 0;
-    let totalCredit = 0;
-    let sumDaysWeighted = 0;
-    let sumAmt = 0;
-
-    for (const p of payments) {
-      const sch = schedules.find((s) => s.id === p.schId);
-      const dueDate = sch ? sch.date : "";
-      const days = dueDate ? daysBetween(p.date, dueDate) : 0;
-      const c = calcCredit(p.amt, days, rateDec);
-      totalPaid += p.amt;
-      totalCredit += c;
-      sumDaysWeighted += days * p.amt;
-      sumAmt += p.amt;
-    }
-    const totalScheduled = schedules.reduce((a, s) => a + s.amt, 0);
-    const totalRemain = Math.max(0, totalScheduled - totalCredit);
-    const totalDiscount = Math.max(0, totalCredit - totalPaid);
-
-    let simpleRate: number | null = null;
-    let compoundRate: number | null = null;
-    if (sumAmt > 0 && payments.length > 0) {
-      const avgDays = sumDaysWeighted / sumAmt;
-      simpleRate = effectiveSimple(avgDays, rateDec);
-      compoundRate = effectiveCompound(avgDays, rateDec);
-    }
-
-    return {
-      totalPaid,
-      totalCredit,
-      totalDiscount,
-      totalRemain,
-      hasSchedule: schedules.length > 0,
-      simpleRate,
-      compoundRate,
-    };
-  }, [schedules, payments, rate]);
-
   return (
-    <div className="px-4 pb-8 pt-4" style={{ fontFamily: "var(--font-sans)" }}>
-      <Header onReset={handleReset} />
+    <div
+      className="relative flex h-full flex-col overflow-hidden"
+      style={{ background: "var(--bg)" }}
+    >
+      <TopBar onMenu={() => setSheet("menu")} />
 
-      <ScheduleSection
-        schedules={schedules}
-        payments={payments}
+      <div
+        className="flex-1 overflow-y-auto"
+        style={{ overscrollBehavior: "contain" }}
+      >
+        <Hero
+          totals={totals}
+          rate={rate}
+          onRateClick={() => setSheet("rate")}
+        />
+
+        <div
+          className="flex items-center justify-between"
+          style={{ padding: "22px 20px 12px" }}
+        >
+          <div
+            style={{
+              fontSize: 17,
+              fontWeight: 800,
+              color: "#191F28",
+              letterSpacing: -0.4,
+            }}
+          >
+            중도금 일정
+          </div>
+          <span style={{ fontSize: 13, color: "#8B95A1", fontWeight: 500 }}>
+            {schedules.length}건
+          </span>
+        </div>
+
+        {schedules.length === 0 ? (
+          <div
+            style={{
+              margin: "0 16px 12px",
+              padding: "36px 20px",
+              background: "#fff",
+              borderRadius: 18,
+              textAlign: "center",
+              boxShadow:
+                "0 1px 3px rgba(0,0,0,0.03), 0 4px 14px rgba(17,24,39,0.04)",
+            }}
+          >
+            <div style={{ fontSize: 40, marginBottom: 8 }}>📅</div>
+            <div
+              style={{
+                fontSize: 15,
+                fontWeight: 700,
+                color: "#191F28",
+                marginBottom: 4,
+              }}
+            >
+              중도금을 추가해 보세요
+            </div>
+            <div
+              style={{
+                fontSize: 13,
+                color: "#8B95A1",
+                marginBottom: 16,
+              }}
+            >
+              기준일과 금액을 입력하면 할인액이 자동 계산돼요
+            </div>
+            <PrimaryButton
+              onClick={() => setSheet("sch")}
+              style={{ height: 48 }}
+            >
+              + 중도금 추가
+            </PrimaryButton>
+          </div>
+        ) : (
+          <>
+            {schedules.map((sch, i) => (
+              <ScheduleCard
+                key={sch.id}
+                sch={sch}
+                payments={payments}
+                rate={rate}
+                defaultOpen={i === 0}
+                onAddPay={openAddPay}
+                onAddBulk={openAddBulk}
+                onRemoveSch={removeSchedule}
+                onRemovePay={removePayment}
+              />
+            ))}
+            <button
+              onClick={() => setSheet("sch")}
+              style={{
+                width: "calc(100% - 32px)",
+                margin: "0 16px 16px",
+                padding: 16,
+                border: "1.5px dashed #D1D6DB",
+                borderRadius: 18,
+                background: "transparent",
+                color: "#4E5968",
+                fontSize: 14,
+                fontWeight: 600,
+                cursor: "pointer",
+              }}
+            >
+              + 중도금 추가
+            </button>
+          </>
+        )}
+
+        <div style={{ height: 96 }} />
+      </div>
+
+      {schedules.length > 0 && <Fab onClick={() => openAddPay(schedules[0])} />}
+
+      <AddScheduleSheet
+        open={sheet === "sch"}
+        onClose={close}
+        onSubmit={addSchedule}
+      />
+      <AddPaymentSheet
+        open={sheet === "pay"}
+        onClose={close}
+        onSubmit={addPayment}
+        sch={sheetSch}
+      />
+      <AddBulkSheet
+        open={sheet === "bulk"}
+        onClose={close}
+        onSubmit={addBulkPayments}
+        sch={sheetSch}
+      />
+      <RateSheet
+        open={sheet === "rate"}
+        onClose={close}
         rate={rate}
-        onAdd={handleAddSchedule}
-        onRemove={handleRemoveSchedule}
-        onRateChange={setRate}
+        onChange={setRate}
       />
-
-      <hr className="divider" />
-
-      <PaymentSection
-        schedules={schedules}
-        onAddSingle={handleAddSingle}
-        onAddBulk={handleAddBulk}
-      />
-
-      <hr className="divider" />
-
-      <SummarySection
-        totalPaid={summary.totalPaid}
-        totalCredit={summary.totalCredit}
-        totalDiscount={summary.totalDiscount}
-        totalRemain={summary.totalRemain}
-        hasSchedule={summary.hasSchedule}
-      />
-
-      <RateAnalysis
-        nominalRate={rate / 100}
-        simpleRate={summary.simpleRate}
-        compoundRate={summary.compoundRate}
-      />
-
-      <PaymentsTable
-        schedules={schedules}
-        payments={payments}
+      <MenuSheet
+        open={sheet === "menu"}
+        onClose={close}
+        totals={totals}
         rate={rate}
-        onRemove={handleRemovePayment}
-        onClearAll={handleClearPayments}
+        onClearPays={() => setPayments([])}
+        onReset={handleReset}
       />
     </div>
   );

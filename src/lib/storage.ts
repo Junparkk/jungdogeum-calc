@@ -1,6 +1,6 @@
 import { Storage } from "@apps-in-toss/web-framework";
 
-const KEY = "prepayment:state:v1";
+const KEY = "prepay:state:v2";
 
 // 토스 인앱의 Storage는 모바일 런타임에서만 동작. 로컬 브라우저 dev에서는 throw 하거나
 // undefined를 반환하므로 try/catch로 감싸고 실패 시 localStorage로 폴백.

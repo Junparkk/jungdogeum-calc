@@ -14,16 +14,14 @@ export type Payment = {
   bulk: boolean;
 };
 
-export function fmt(n: number): string {
-  return Math.round(n).toLocaleString("ko-KR") + "원";
-}
-
 export function daysBetween(d1: string, d2: string): number {
   return Math.round(
     (new Date(d2).getTime() - new Date(d1).getTime()) / 86_400_000,
   );
 }
 
+// 핵심 공식: 수납인정금액 = 납부액 / (1 − r·t)
+// rate는 연이율 소수 (예: 0.05 = 5%)
 export function calcCredit(amt: number, days: number, rate: number): number {
   const t = days / 365;
   const rt = rate * t;
