@@ -36,9 +36,11 @@ export function ScheduleCard({
     const days = daysBetween(p.date, sch.date);
     return s + calcCredit(p.amt, days, rate);
   }, 0);
+  // 납부 기준 모델: 카드 진행률/잔여는 실제 납부합 기준.
+  // 할인은 보너스로 별도 표시 (전체 절약은 Hero/MenuSheet에 누적).
   const discount = Math.max(0, totalCredit - totalPaid);
-  const pct = Math.min(100, (totalCredit / sch.amt) * 100);
-  const remain = Math.max(0, sch.amt - totalCredit);
+  const pct = Math.min(100, (totalPaid / sch.amt) * 100);
+  const remain = Math.max(0, sch.amt - totalPaid);
 
   return (
     <div

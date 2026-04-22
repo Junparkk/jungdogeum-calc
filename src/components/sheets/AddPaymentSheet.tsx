@@ -1,12 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import type { Payment, Schedule } from "@/lib/calc";
 import {
-  calcCredit,
   canPayInto,
-  creditFor,
-  daysBetween,
   KIND_LABEL,
   maxPayInto,
+  paidFor,
 } from "@/lib/calc";
 import { BottomSheet } from "@/components/ui/BottomSheet";
 import { Field } from "@/components/ui/Field";
@@ -28,7 +26,6 @@ type Props = {
   }) => void;
   schedules: Schedule[];
   payments: Payment[];
-  rate: number;
   preselectedSch: Schedule | null;
 };
 
@@ -38,7 +35,6 @@ export function AddPaymentSheet({
   onSubmit,
   schedules,
   payments,
-  rate,
   preselectedSch,
 }: Props) {
   const today = new Date().toISOString().slice(0, 10);
@@ -54,10 +50,10 @@ export function AddPaymentSheet({
       a.date.localeCompare(b.date),
     );
     const firstUnlocked = candidates.find(
-      (s) => canPayInto(s, schedules, payments, rate).ok,
+      (s) => canPayInto(s, schedules, payments).ok,
     );
     return firstUnlocked?.id ?? candidates[0]?.id ?? null;
-  }, [open, preselectedSch, schedules, payments, rate]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [open, preselectedSch, schedules, payments]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (open) {
@@ -71,33 +67,26 @@ export function AddPaymentSheet({
 
   const sch = schedules.find((s) => s.id === schId) ?? null;
 
-  // 선택된 일정/날짜 기준 잔여 한도. 입력 가이드 + 검증에 둘 다 사용.
+  // 선택된 일정의 납부 한도 (납부 기준). 입력 가이드 + 검증에 사용.
   const limit = useMemo(() => {
-    if (!sch || !date || date >= sch.date) return null;
-    const cap = maxPayInto(sch, date, payments, rate);
-    return cap > 0 ? cap : 0;
-  }, [sch, date, payments, rate]);
+    if (!sch) return null;
+    return maxPayInto(sch, payments);
+  }, [sch, payments]);
 
   const submit = () => {
     if (!sch) return setErr("일정을 선택해 주세요");
-    const lock = canPayInto(sch, schedules, payments, rate);
+    const lock = canPayInto(sch, schedules, payments);
     if (!lock.ok) return setErr(lock.reason);
     if (!date) return setErr("납부일을 선택해 주세요");
     if (!amt || amt <= 0) return setErr("납부액을 입력해 주세요");
     if (date >= sch.date)
       return setErr("납부일은 기준일보다 이전이어야 해요");
 
-    // 충당액 초과 검증: 이번 납부의 충당분이 잔여 한도를 넘으면 차단
-    const newCredit = calcCredit(
-      amt,
-      daysBetween(date, sch.date),
-      rate,
-    );
-    const current = creditFor(sch, payments, rate);
-    if (current + newCredit > sch.amt + 0.5) {
-      const cap = maxPayInto(sch, date, payments, rate);
+    // 납부 한도 초과 검증
+    const cap = maxPayInto(sch, payments);
+    if (paidFor(sch, payments) + amt > sch.amt + 0.5) {
       return setErr(
-        `충당액이 일정 금액을 초과해요. 최대 ${fmtWon(cap)}까지 입력 가능`,
+        `납부합이 일정 금액(${fmtWon(sch.amt)})을 초과해요. 최대 ${fmtWon(cap)}까지 입력 가능`,
       );
     }
 
@@ -117,7 +106,6 @@ export function AddPaymentSheet({
         <ScheduleSelector
           schedules={schedules}
           payments={payments}
-          rate={rate}
           value={schId}
           onChange={setSchId}
         />
@@ -129,7 +117,7 @@ export function AddPaymentSheet({
         label="납부액"
         hint={
           limit != null
-            ? `최대 ${fmtWon(limit)} (잔여 충당 한도)`
+            ? `잔여 한도 ${fmtWon(limit)}`
             : amt > 0
               ? fmtShort(amt) + "원"
               : "예) 3,000,000"
@@ -143,13 +131,14 @@ export function AddPaymentSheet({
           suffix="원"
         />
       </Field>
-      <div className="flex" style={{ gap: 6, marginTop: -6, marginBottom: 6 }}>
+
+      <div style={{ marginBottom: 12 }}>
         <button
           onClick={() => limit != null && setAmt(limit)}
           disabled={limit == null || limit <= 0}
           style={{
-            flex: 1,
-            height: 36,
+            width: "100%",
+            height: 40,
             border: "none",
             borderRadius: 10,
             background: "var(--pc-tint)",
@@ -160,13 +149,27 @@ export function AddPaymentSheet({
             opacity: limit == null || limit <= 0 ? 0.5 : 1,
           }}
         >
-          최대 채우기
+          잔여 한도로 채우기
+          {limit != null && limit > 0 ? ` (${fmtWon(limit)})` : ""}
         </button>
       </div>
-      <QuickAmt
-        onPick={(n) => setAmt(amt + n)}
-        items={[100_000, 1_000_000, 10_000_000]}
-      />
+
+      <div style={{ marginBottom: 4 }}>
+        <div
+          style={{
+            fontSize: 11,
+            color: "#8B95A1",
+            fontWeight: 500,
+            marginBottom: 6,
+          }}
+        >
+          빠른 금액 추가
+        </div>
+        <QuickAmt
+          onPick={(n) => setAmt(amt + n)}
+          items={[100_000, 1_000_000, 10_000_000]}
+        />
+      </div>
       {err && (
         <div style={{ fontSize: 13, color: "#FF4D4F", marginTop: 4 }}>
           {err}

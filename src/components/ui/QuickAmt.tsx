@@ -7,10 +7,7 @@ type Props = {
 
 export function QuickAmt({ onPick, items }: Props) {
   return (
-    <div
-      className="flex"
-      style={{ gap: 6, marginTop: -6, marginBottom: 6 }}
-    >
+    <div className="flex" style={{ gap: 6 }}>
       {items.map((n) => (
         <button
           key={n}

@@ -13,7 +13,14 @@ export const KIND_LABEL: Record<ScheduleKind, string> = {
   option: "옵션비",
 };
 
-// 한 일정에 대한 충당액 합계
+// 한 일정에 대한 실제 납부액 합계
+export function paidFor(sch: Schedule, payments: Payment[]): number {
+  return payments
+    .filter((p) => p.schId === sch.id)
+    .reduce((sum, p) => sum + p.amt, 0);
+}
+
+// 한 일정에 대한 충당액(납부 + 선납 할인) 합계
 export function creditFor(
   sch: Schedule,
   payments: Payment[],
@@ -28,35 +35,24 @@ export function creditFor(
     );
 }
 
-// 이 일정에 이 날짜로 추가할 수 있는 최대 납부액(원).
-// 충당액이 일정 금액을 정확히 채우는 지점.
-export function maxPayInto(
-  sch: Schedule,
-  payDate: string,
-  payments: Payment[],
-  rate: number,
-): number {
-  const current = creditFor(sch, payments, rate);
-  const remainCredit = Math.max(0, sch.amt - current);
-  const t = daysBetween(payDate, sch.date) / 365;
-  const rt = rate * t;
-  if (rt >= 1) return remainCredit;
-  // amt / (1 - rt) = remainCredit → amt = remainCredit * (1 - rt)
-  return Math.floor(remainCredit * (1 - rt));
+// 이 일정에 추가할 수 있는 최대 납부액 (납부 기준).
+// 일정 명목 금액을 그대로 한도로 사용 — 사용자가 "1차 4천만"으로 인식한
+// 그 금액까지만 입력 가능. 할인은 별도 누적이라 한도 계산엔 영향 없음.
+export function maxPayInto(sch: Schedule, payments: Payment[]): number {
+  return Math.max(0, sch.amt - paidFor(sch, payments));
 }
 
-// 같은 종류(kind) 안에서 기준일이 더 빠른 일정이 충족되어야
-// 다음 일정에 납부할 수 있다. 충족 = 충당액 >= 일정 금액.
-// 또한, 대상 일정이 이미 가득 찼으면 추가 납부 불가.
+// 같은 종류(kind) 안에서 기준일이 더 빠른 일정이 채워져야
+// 다음 일정에 납부할 수 있다. 채움 = 납부합 >= 일정 금액 (납부 기준).
+// 대상이 이미 가득 찼으면 추가 납부 불가.
 export function canPayInto(
   target: Schedule,
   schedules: Schedule[],
   payments: Payment[],
-  rate: number,
 ): { ok: true } | { ok: false; reason: string } {
-  // 1. 대상 자체가 이미 충당 완료인지
-  if (creditFor(target, payments, rate) + 0.5 >= target.amt) {
-    return { ok: false, reason: "이미 충당이 완료됐어요" };
+  // 1. 대상 자체가 이미 가득 찬 경우
+  if (paidFor(target, payments) + 0.5 >= target.amt) {
+    return { ok: false, reason: "이미 납부가 완료됐어요" };
   }
 
   // 2. 같은 종류의 더 빠른 일정이 채워졌는지
@@ -70,7 +66,7 @@ export function canPayInto(
     .sort((a, b) => a.date.localeCompare(b.date));
 
   for (const s of earlierSameKind) {
-    if (creditFor(s, payments, rate) + 0.5 < s.amt) {
+    if (paidFor(s, payments) + 0.5 < s.amt) {
       return {
         ok: false,
         reason: `먼저 ${KIND_LABEL[s.kind]} '${s.name}'을(를) 채워주세요`,

@@ -5,7 +5,6 @@ import { fmtShort } from "@/lib/format";
 type Props = {
   schedules: Schedule[];
   payments: Payment[];
-  rate: number;
   value: number | null;
   onChange: (id: number) => void;
 };
@@ -13,7 +12,6 @@ type Props = {
 export function ScheduleSelector({
   schedules,
   payments,
-  rate,
   value,
   onChange,
 }: Props) {
@@ -38,7 +36,7 @@ export function ScheduleSelector({
   }
 
   const allLocked = sorted.every(
-    (s) => !canPayInto(s, schedules, payments, rate).ok,
+    (s) => !canPayInto(s, schedules, payments).ok,
   );
 
   if (allLocked) {
@@ -62,7 +60,7 @@ export function ScheduleSelector({
   return (
     <div className="flex flex-col" style={{ gap: 6 }}>
       {sorted.map((s) => {
-        const lock = canPayInto(s, schedules, payments, rate);
+        const lock = canPayInto(s, schedules, payments);
         const selected = value === s.id;
         const disabled = !lock.ok;
         const isOption = s.kind === "option";

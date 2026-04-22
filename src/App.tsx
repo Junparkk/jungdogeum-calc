@@ -362,7 +362,6 @@ function App() {
         onSubmit={addPayment}
         schedules={schedules}
         payments={payments}
-        rate={rate}
         preselectedSch={sheetSch}
       />
       <AddBulkSheet
@@ -371,7 +370,6 @@ function App() {
         onSubmit={addBulkPayments}
         schedules={schedules}
         payments={payments}
-        rate={rate}
         preselectedSch={sheetSch}
       />
       <RateSheet

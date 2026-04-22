@@ -51,8 +51,11 @@ export function Hero({ totals, rate, onRateClick }: Props) {
     totals;
   const hasData = totalPaid > 0;
   const effS = effectiveSimple(avgDays || 0, rate);
+  // 납부 기준 진행률 — 사용자가 실제로 낸 비율
   const pct =
-    totalScheduled > 0 ? Math.min(100, (totalCredit / totalScheduled) * 100) : 0;
+    totalScheduled > 0 ? Math.min(100, (totalPaid / totalScheduled) * 100) : 0;
+  // Hero 잔여(우측 칩)는 할인 효과 반영해서 "실제 더 채워야 할 의무"를 표시
+  const realRemain = Math.max(0, totalScheduled - totalCredit);
 
   return (
     <div
@@ -116,10 +119,10 @@ export function Hero({ totals, rate, onRateClick }: Props) {
           }}
         >
           <span style={{ whiteSpace: "nowrap" }}>
-            충당액 {totalScheduled > 0 ? pct.toFixed(1) : "0.0"}%
+            납부 {totalScheduled > 0 ? pct.toFixed(1) : "0.0"}%
           </span>
           <span style={{ whiteSpace: "nowrap" }}>
-            {fmtShort(totalCredit)}
+            {fmtShort(totalPaid)}
             {totalScheduled > 0 ? " / " + fmtShort(totalScheduled) : ""}
           </span>
         </div>
@@ -148,11 +151,7 @@ export function Hero({ totals, rate, onRateClick }: Props) {
         <SubMetric label="실납입" value={fmtShort(totalPaid) + "원"} />
         <SubMetric
           label="잔여"
-          value={
-            totalScheduled > 0
-              ? fmtShort(Math.max(0, totalScheduled - totalCredit)) + "원"
-              : "—"
-          }
+          value={totalScheduled > 0 ? fmtShort(realRemain) + "원" : "—"}
         />
         <button
           onClick={onRateClick}

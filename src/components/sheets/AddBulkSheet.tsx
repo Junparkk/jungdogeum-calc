@@ -1,12 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import type { Payment, Schedule } from "@/lib/calc";
-import {
-  calcCredit,
-  canPayInto,
-  creditFor,
-  daysBetween,
-  KIND_LABEL,
-} from "@/lib/calc";
+import { canPayInto, KIND_LABEL, paidFor } from "@/lib/calc";
 import { BottomSheet } from "@/components/ui/BottomSheet";
 import { Field } from "@/components/ui/Field";
 import { BigInput } from "@/components/ui/BigInput";
@@ -23,7 +17,6 @@ type Props = {
   onSubmit: (pays: BulkPay[]) => void;
   schedules: Schedule[];
   payments: Payment[];
-  rate: number;
   preselectedSch: Schedule | null;
 };
 
@@ -35,7 +28,6 @@ export function AddBulkSheet({
   onSubmit,
   schedules,
   payments,
-  rate,
   preselectedSch,
 }: Props) {
   const today = new Date().toISOString().slice(0, 7);
@@ -52,10 +44,10 @@ export function AddBulkSheet({
       a.date.localeCompare(b.date),
     );
     const firstUnlocked = candidates.find(
-      (s) => canPayInto(s, schedules, payments, rate).ok,
+      (s) => canPayInto(s, schedules, payments).ok,
     );
     return firstUnlocked?.id ?? candidates[0]?.id ?? null;
-  }, [open, preselectedSch, schedules, payments, rate]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [open, preselectedSch, schedules, payments]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (open) {
@@ -73,7 +65,7 @@ export function AddBulkSheet({
 
   const submit = () => {
     if (!sch) return setErr("일정을 선택해 주세요");
-    const lock = canPayInto(sch, schedules, payments, rate);
+    const lock = canPayInto(sch, schedules, payments);
     if (!lock.ok) return setErr(lock.reason);
     if (!start || !end) return setErr("시작/종료 월을 선택해 주세요");
     if (start > end) return setErr("시작 월이 종료 월보다 늦습니다");
@@ -104,17 +96,13 @@ export function AddBulkSheet({
     if (pays.length === 0)
       return setErr("기준일 이전에 해당하는 날짜가 없어요");
 
-    // 충당액 합계가 잔여 한도를 넘는지 검증
-    const addedCredit = pays.reduce(
-      (s, p) =>
-        s + calcCredit(p.amt, daysBetween(p.date, sch.date), rate),
-      0,
-    );
-    const current = creditFor(sch, payments, rate);
-    const overflow = current + addedCredit - sch.amt;
+    // 납부합 한도 검증 (납부 기준)
+    const addedPaid = pays.reduce((s, p) => s + p.amt, 0);
+    const current = paidFor(sch, payments);
+    const overflow = current + addedPaid - sch.amt;
     if (overflow > 0.5) {
       return setErr(
-        `${pays.length}회 일괄 시 충당액이 ${fmtWon(overflow)} 초과해요. 월 납부액이나 기간을 줄여주세요.`,
+        `${pays.length}회 일괄 시 납부합이 ${fmtWon(overflow)} 초과해요. 월 납부액이나 기간을 줄여주세요.`,
       );
     }
 
@@ -128,7 +116,6 @@ export function AddBulkSheet({
         <ScheduleSelector
           schedules={schedules}
           payments={payments}
-          rate={rate}
           value={schId}
           onChange={setSchId}
         />
