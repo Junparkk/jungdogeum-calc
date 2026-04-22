@@ -196,20 +196,20 @@ export function Hero({ totals, rate, onRateClick }: Props) {
             }}
           >
             {(rate * 100).toFixed(1)}%
-            {effS != null && (
-              <span
-                style={{
-                  fontSize: 11,
-                  fontWeight: 500,
-                  color: "var(--pc)",
-                  marginLeft: 4,
-                  opacity: 0.7,
-                }}
-              >
-                실효 {(effS * 100).toFixed(1)}%
-              </span>
-            )}
           </span>
+          {effS != null && (
+            <span
+              style={{
+                fontSize: 10,
+                fontWeight: 500,
+                color: "var(--pc)",
+                opacity: 0.75,
+                fontVariantNumeric: "tabular-nums",
+              }}
+            >
+              실효 {(effS * 100).toFixed(1)}%
+            </span>
+          )}
         </button>
       </div>
     </div>
