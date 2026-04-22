@@ -1,7 +1,7 @@
 import { defineConfig } from "@apps-in-toss/web-framework/config";
 
 export default defineConfig({
-  appName: "prepayment-calculator",
+  appName: "jungdogeum-calc",
   brand: {
     displayName: "중도금 선납 계산기",
     primaryColor: "#185FA5",
