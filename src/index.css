@@ -1,0 +1,313 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
+ * Toss 인앱 디자인 토큰의 개발용 폴백.
+ * 인앱 환경에서는 토스가 이 변수들을 주입하므로 아래 값은 덮여 씀.
+ */
+:root {
+  --font-sans:
+    -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Pretendard",
+    "Segoe UI", Roboto, sans-serif;
+
+  --color-text-primary: #1b1c1f;
+  --color-text-secondary: #4e5968;
+  --color-text-info: #185fa5;
+
+  --color-background-primary: #ffffff;
+  --color-background-secondary: #f2f4f6;
+  --color-background-info: #e6f1fb;
+
+  --color-border-secondary: #d1d6db;
+  --color-border-tertiary: #e5e8eb;
+
+  --border-radius-md: 8px;
+  --border-radius-lg: 12px;
+}
+
+html,
+body {
+  margin: 0;
+  background: var(--color-background-primary);
+  color: var(--color-text-primary);
+  font-family: var(--font-sans);
+}
+
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+@media (min-width: 481px) {
+  body {
+    display: flex;
+    justify-content: center;
+    background-color: #f5f5f5;
+  }
+
+  #root {
+    width: 100%;
+    max-width: 480px;
+    background: var(--color-background-primary);
+    min-height: 100vh;
+  }
+}
+
+@layer components {
+  .section-title {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--color-text-secondary);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+
+  .pc-input {
+    font-size: 14px;
+    padding: 7px 10px;
+    border: 0.5px solid var(--color-border-secondary);
+    border-radius: var(--border-radius-md);
+    background: var(--color-background-primary);
+    color: var(--color-text-primary);
+    width: 100%;
+  }
+  .pc-input:focus {
+    outline: none;
+    border-color: #378add;
+  }
+
+  .field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .field > label {
+    font-size: 12px;
+    color: var(--color-text-secondary);
+  }
+
+  .add-btn {
+    padding: 7px 18px;
+    border: none;
+    border-radius: var(--border-radius-md);
+    background: #185fa5;
+    color: #fff;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    height: 36px;
+    white-space: nowrap;
+  }
+  .add-btn:hover {
+    background: #0c447c;
+  }
+  .add-btn.sm {
+    font-size: 13px;
+    padding: 5px 12px;
+    height: 32px;
+  }
+
+  .del-btn {
+    background: none;
+    border: none;
+    color: var(--color-text-secondary);
+    cursor: pointer;
+    font-size: 14px;
+    padding: 0 4px;
+  }
+  .del-btn:hover {
+    color: #a32d2d;
+  }
+
+  .reset-btn {
+    font-size: 12px;
+    padding: 5px 10px;
+    border-radius: var(--border-radius-md);
+    border: 0.5px solid var(--color-border-secondary);
+    background: var(--color-background-primary);
+    color: var(--color-text-secondary);
+    cursor: pointer;
+  }
+  .reset-btn:hover {
+    color: #a32d2d;
+    border-color: #a32d2d;
+  }
+
+  .divider {
+    border: none;
+    border-top: 0.5px solid var(--color-border-tertiary);
+    margin: 1.25rem 0;
+  }
+
+  .warning {
+    font-size: 12px;
+    color: #a32d2d;
+    min-height: 18px;
+    margin-top: 4px;
+  }
+
+  .chip {
+    display: inline-block;
+    font-size: 11px;
+    padding: 2px 7px;
+    border-radius: 999px;
+    background: var(--color-background-info);
+    color: var(--color-text-info);
+  }
+
+  .sch-card {
+    background: var(--color-background-primary);
+    border: 0.5px solid var(--color-border-secondary);
+    border-radius: var(--border-radius-lg);
+    padding: 10px 14px;
+  }
+  .sch-badge {
+    font-size: 11px;
+    font-weight: 500;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: #e6f1fb;
+    color: #185fa5;
+  }
+  .sch-meta {
+    font-size: 13px;
+    color: var(--color-text-secondary);
+  }
+  .sch-progress {
+    height: 5px;
+    border-radius: 999px;
+    background: var(--color-background-secondary);
+    overflow: hidden;
+    margin-top: 6px;
+  }
+  .sch-fill {
+    height: 100%;
+    border-radius: 999px;
+    background: #185fa5;
+  }
+  .sch-nums {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    color: var(--color-text-secondary);
+    margin-top: 3px;
+  }
+
+  .tab {
+    padding: 6px 16px;
+    border-radius: 999px;
+    border: 0.5px solid var(--color-border-secondary);
+    background: var(--color-background-primary);
+    color: var(--color-text-secondary);
+    font-size: 13px;
+    cursor: pointer;
+  }
+  .tab.active {
+    background: #185fa5;
+    color: #fff;
+    border-color: #185fa5;
+  }
+
+  .metric {
+    background: var(--color-background-secondary);
+    border-radius: var(--border-radius-md);
+    padding: 12px 14px;
+  }
+  .metric .mlabel {
+    font-size: 11px;
+    color: var(--color-text-secondary);
+    margin-bottom: 4px;
+  }
+  .metric .mvalue {
+    font-size: 17px;
+    font-weight: 500;
+    color: var(--color-text-primary);
+  }
+  .metric .mvalue.blue {
+    color: #185fa5;
+  }
+  .metric .mvalue.green {
+    color: #3b6d11;
+  }
+  .metric .mvalue.red {
+    color: #a32d2d;
+  }
+
+  .formula-box {
+    background: var(--color-background-secondary);
+    border-radius: var(--border-radius-md);
+    padding: 10px 14px;
+    margin-bottom: 1rem;
+    font-size: 12px;
+    color: var(--color-text-secondary);
+    line-height: 1.8;
+  }
+  .formula-box strong {
+    color: var(--color-text-primary);
+    font-weight: 500;
+  }
+
+  .rate-card {
+    background: var(--color-background-secondary);
+    border-radius: var(--border-radius-md);
+    padding: 10px 12px;
+  }
+  .rate-card .rlabel {
+    font-size: 11px;
+    color: var(--color-text-secondary);
+    margin-bottom: 2px;
+  }
+  .rate-card .rvalue {
+    font-size: 14px;
+    font-weight: 500;
+    color: #185fa5;
+  }
+
+  .bulk-tag {
+    display: inline-block;
+    font-size: 11px;
+    padding: 2px 6px;
+    border-radius: 999px;
+    background: var(--color-background-secondary);
+    color: var(--color-text-secondary);
+    margin-left: 4px;
+  }
+
+  .pc-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+  .pc-table thead th {
+    font-size: 11px;
+    color: var(--color-text-secondary);
+    font-weight: 500;
+    text-align: right;
+    padding: 6px 10px;
+    border-bottom: 0.5px solid var(--color-border-tertiary);
+  }
+  .pc-table thead th:first-child,
+  .pc-table thead th:nth-child(2) {
+    text-align: left;
+  }
+  .pc-table tbody tr:hover {
+    background: var(--color-background-secondary);
+  }
+  .pc-table tbody td {
+    padding: 8px 10px;
+    border-bottom: 0.5px solid var(--color-border-tertiary);
+    text-align: right;
+    color: var(--color-text-primary);
+  }
+  .pc-table tbody td:first-child,
+  .pc-table tbody td:nth-child(2) {
+    text-align: left;
+  }
+  .pc-empty {
+    text-align: center;
+    padding: 2rem;
+    color: var(--color-text-secondary);
+    font-size: 13px;
+  }
+}
