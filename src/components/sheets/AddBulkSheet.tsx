@@ -1,12 +1,18 @@
 import { useEffect, useMemo, useState } from "react";
 import type { Payment, Schedule } from "@/lib/calc";
-import { canPayInto, KIND_LABEL } from "@/lib/calc";
+import {
+  calcCredit,
+  canPayInto,
+  creditFor,
+  daysBetween,
+  KIND_LABEL,
+} from "@/lib/calc";
 import { BottomSheet } from "@/components/ui/BottomSheet";
 import { Field } from "@/components/ui/Field";
 import { BigInput } from "@/components/ui/BigInput";
 import { PrimaryButton } from "@/components/ui/PrimaryButton";
 import { QuickAmt } from "@/components/ui/QuickAmt";
-import { fmtAmtInput, fmtShort, parseAmt } from "@/lib/format";
+import { fmtAmtInput, fmtShort, fmtWon, parseAmt } from "@/lib/format";
 import { ScheduleSelector } from "./ScheduleSelector";
 
 type BulkPay = Omit<Payment, "id">;
@@ -97,6 +103,21 @@ export function AddBulkSheet({
     }
     if (pays.length === 0)
       return setErr("기준일 이전에 해당하는 날짜가 없어요");
+
+    // 충당액 합계가 잔여 한도를 넘는지 검증
+    const addedCredit = pays.reduce(
+      (s, p) =>
+        s + calcCredit(p.amt, daysBetween(p.date, sch.date), rate),
+      0,
+    );
+    const current = creditFor(sch, payments, rate);
+    const overflow = current + addedCredit - sch.amt;
+    if (overflow > 0.5) {
+      return setErr(
+        `${pays.length}회 일괄 시 충당액이 ${fmtWon(overflow)} 초과해요. 월 납부액이나 기간을 줄여주세요.`,
+      );
+    }
+
     onSubmit(pays);
     onClose();
   };

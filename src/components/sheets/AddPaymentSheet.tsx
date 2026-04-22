@@ -1,12 +1,19 @@
 import { useEffect, useMemo, useState } from "react";
 import type { Payment, Schedule } from "@/lib/calc";
-import { canPayInto, KIND_LABEL } from "@/lib/calc";
+import {
+  calcCredit,
+  canPayInto,
+  creditFor,
+  daysBetween,
+  KIND_LABEL,
+  maxPayInto,
+} from "@/lib/calc";
 import { BottomSheet } from "@/components/ui/BottomSheet";
 import { Field } from "@/components/ui/Field";
 import { BigInput } from "@/components/ui/BigInput";
 import { PrimaryButton } from "@/components/ui/PrimaryButton";
 import { QuickAmt } from "@/components/ui/QuickAmt";
-import { fmtAmtInput, fmtShort, parseAmt } from "@/lib/format";
+import { fmtAmtInput, fmtShort, fmtWon, parseAmt } from "@/lib/format";
 import { ScheduleSelector } from "./ScheduleSelector";
 
 type Props = {
@@ -64,6 +71,13 @@ export function AddPaymentSheet({
 
   const sch = schedules.find((s) => s.id === schId) ?? null;
 
+  // 선택된 일정/날짜 기준 잔여 한도. 입력 가이드 + 검증에 둘 다 사용.
+  const limit = useMemo(() => {
+    if (!sch || !date || date >= sch.date) return null;
+    const cap = maxPayInto(sch, date, payments, rate);
+    return cap > 0 ? cap : 0;
+  }, [sch, date, payments, rate]);
+
   const submit = () => {
     if (!sch) return setErr("일정을 선택해 주세요");
     const lock = canPayInto(sch, schedules, payments, rate);
@@ -72,6 +86,21 @@ export function AddPaymentSheet({
     if (!amt || amt <= 0) return setErr("납부액을 입력해 주세요");
     if (date >= sch.date)
       return setErr("납부일은 기준일보다 이전이어야 해요");
+
+    // 충당액 초과 검증: 이번 납부의 충당분이 잔여 한도를 넘으면 차단
+    const newCredit = calcCredit(
+      amt,
+      daysBetween(date, sch.date),
+      rate,
+    );
+    const current = creditFor(sch, payments, rate);
+    if (current + newCredit > sch.amt + 0.5) {
+      const cap = maxPayInto(sch, date, payments, rate);
+      return setErr(
+        `충당액이 일정 금액을 초과해요. 최대 ${fmtWon(cap)}까지 입력 가능`,
+      );
+    }
+
     onSubmit({
       schId: sch.id,
       schName: sch.name,
@@ -98,7 +127,13 @@ export function AddPaymentSheet({
       </Field>
       <Field
         label="납부액"
-        hint={amt > 0 ? fmtShort(amt) + "원" : "예) 3,000,000"}
+        hint={
+          limit != null
+            ? `최대 ${fmtWon(limit)} (잔여 충당 한도)`
+            : amt > 0
+              ? fmtShort(amt) + "원"
+              : "예) 3,000,000"
+        }
       >
         <BigInput
           inputMode="numeric"
@@ -108,6 +143,26 @@ export function AddPaymentSheet({
           suffix="원"
         />
       </Field>
+      <div className="flex" style={{ gap: 6, marginTop: -6, marginBottom: 6 }}>
+        <button
+          onClick={() => limit != null && setAmt(limit)}
+          disabled={limit == null || limit <= 0}
+          style={{
+            flex: 1,
+            height: 36,
+            border: "none",
+            borderRadius: 10,
+            background: "var(--pc-tint)",
+            color: "var(--pc)",
+            fontSize: 13,
+            fontWeight: 600,
+            cursor: limit == null || limit <= 0 ? "not-allowed" : "pointer",
+            opacity: limit == null || limit <= 0 ? 0.5 : 1,
+          }}
+        >
+          최대 채우기
+        </button>
+      </div>
       <QuickAmt
         onPick={(n) => setAmt(amt + n)}
         items={[100_000, 1_000_000, 10_000_000]}

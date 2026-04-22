@@ -28,6 +28,23 @@ export function creditFor(
     );
 }
 
+// 이 일정에 이 날짜로 추가할 수 있는 최대 납부액(원).
+// 충당액이 일정 금액을 정확히 채우는 지점.
+export function maxPayInto(
+  sch: Schedule,
+  payDate: string,
+  payments: Payment[],
+  rate: number,
+): number {
+  const current = creditFor(sch, payments, rate);
+  const remainCredit = Math.max(0, sch.amt - current);
+  const t = daysBetween(payDate, sch.date) / 365;
+  const rt = rate * t;
+  if (rt >= 1) return remainCredit;
+  // amt / (1 - rt) = remainCredit → amt = remainCredit * (1 - rt)
+  return Math.floor(remainCredit * (1 - rt));
+}
+
 // 같은 종류(kind) 안에서 기준일이 더 빠른 일정이 충족되어야
 // 다음 일정에 납부할 수 있다. 충족 = 충당액 >= 일정 금액.
 // 또한, 대상 일정이 이미 가득 찼으면 추가 납부 불가.
