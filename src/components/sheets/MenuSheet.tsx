@@ -175,20 +175,24 @@ export function MenuSheet({
             onClose();
           }
         }}
+        className="flex w-full flex-col items-start"
         style={{
-          width: "100%",
-          height: 52,
+          padding: "10px 16px",
+          minHeight: 60,
           border: "none",
           borderRadius: 12,
           background: "#F2F4F6",
-          color: "#4E5968",
-          fontSize: 15,
-          fontWeight: 600,
           cursor: "pointer",
           marginBottom: 8,
+          gap: 2,
         }}
       >
-        납부 내역 전체 삭제
+        <span style={{ fontSize: 15, fontWeight: 600, color: "#4E5968" }}>
+          납부 내역 전체 삭제
+        </span>
+        <span style={{ fontSize: 12, color: "#8B95A1", fontWeight: 500 }}>
+          일정은 그대로 두고 납부 기록만 비웁니다
+        </span>
       </button>
       <button
         onClick={() => {
@@ -197,19 +201,23 @@ export function MenuSheet({
             onClose();
           }
         }}
+        className="flex w-full flex-col items-start"
         style={{
-          width: "100%",
-          height: 52,
+          padding: "10px 16px",
+          minHeight: 60,
           border: "none",
           borderRadius: 12,
           background: "#FFF1F0",
-          color: "#FF4D4F",
-          fontSize: 15,
-          fontWeight: 600,
           cursor: "pointer",
+          gap: 2,
         }}
       >
-        모든 데이터 초기화
+        <span style={{ fontSize: 15, fontWeight: 600, color: "#FF4D4F" }}>
+          모든 데이터 초기화
+        </span>
+        <span style={{ fontSize: 12, color: "#FF8782", fontWeight: 500 }}>
+          일정과 납부 기록을 모두 지웁니다
+        </span>
       </button>
     </BottomSheet>
   );
