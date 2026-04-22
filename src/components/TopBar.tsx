@@ -23,26 +23,17 @@ export function TopBar({ onMenu }: Props) {
           flex: "0 1 auto",
         }}
       >
-        <div
-          className="flex items-center justify-center"
+        <img
+          src={`${import.meta.env.BASE_URL}logo.png`}
+          alt=""
           style={{
             width: 28,
             height: 28,
             borderRadius: 8,
-            background: "var(--pc)",
+            objectFit: "cover",
+            display: "block",
           }}
-        >
-          <svg width="16" height="16" viewBox="0 0 16 16">
-            <path
-              d="M3 8l3 3 7-7"
-              stroke="#fff"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              fill="none"
-            />
-          </svg>
-        </div>
+        />
         중도금 선납 계산기
       </div>
       <button
