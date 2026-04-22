@@ -1,14 +1,15 @@
 type Props = {
   onClick: () => void;
+  bottomOffset?: number;
 };
 
-export function Fab({ onClick }: Props) {
+export function Fab({ onClick, bottomOffset = 0 }: Props) {
   return (
     <button
       onClick={onClick}
       className="absolute z-50 flex items-center justify-center"
       style={{
-        bottom: 24,
+        bottom: 24 + bottomOffset,
         right: 20,
         width: 56,
         height: 56,

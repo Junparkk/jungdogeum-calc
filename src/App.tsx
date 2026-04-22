@@ -2,10 +2,17 @@ import { useEffect, useMemo, useState } from "react";
 import type { Payment, Schedule } from "@/lib/calc";
 import { calcCredit, daysBetween } from "@/lib/calc";
 import { clearState, loadState, saveState } from "@/lib/storage";
+import {
+  initAds,
+  isInToss,
+  noteAction,
+  showInterstitialIfEligible,
+} from "@/lib/ads";
 import { TopBar } from "@/components/TopBar";
 import { Hero } from "@/components/Hero";
 import { ScheduleCard } from "@/components/ScheduleCard";
 import { Fab } from "@/components/Fab";
+import { BannerAd } from "@/components/BannerAd";
 import { PrimaryButton } from "@/components/ui/PrimaryButton";
 import { AddScheduleSheet } from "@/components/sheets/AddScheduleSheet";
 import { AddPaymentSheet } from "@/components/sheets/AddPaymentSheet";
@@ -94,6 +101,11 @@ function App() {
   const [sheet, setSheet] = useState<SheetKind>(null);
   const [sheetSch, setSheetSch] = useState<Schedule | null>(null);
 
+  // 광고 초기화 (토스 인앱에서만 동작, 웹/dev에서는 no-op)
+  useEffect(() => {
+    initAds();
+  }, []);
+
   // 복원
   useEffect(() => {
     let cancelled = false;
@@ -136,6 +148,7 @@ function App() {
       ),
     );
     setSchIdCounter(schIdCounter + 1);
+    noteAction();
   };
   const removeSchedule = (id: number) => {
     setSchedules(schedules.filter((s) => s.id !== id));
@@ -148,6 +161,7 @@ function App() {
       ),
     );
     setPayIdCounter(payIdCounter + 1);
+    noteAction();
   };
   const addBulkPayments = (pays: Omit<Payment, "id">[]) => {
     let counter = payIdCounter;
@@ -156,6 +170,9 @@ function App() {
       [...payments, ...newPays].sort((a, b) => a.date.localeCompare(b.date)),
     );
     setPayIdCounter(counter);
+    noteAction();
+    // 월 일괄 추가 = "큰 액션 마무리" 모먼트 → 광고 후보
+    void showInterstitialIfEligible();
   };
   const removePayment = (id: number) =>
     setPayments(payments.filter((p) => p.id !== id));
@@ -206,6 +223,15 @@ function App() {
     setSchIdCounter(1);
     setPayIdCounter(1);
     clearState().catch(() => {});
+    noteAction();
+    // 초기화 후 = 새 세션 시작 모먼트 → 광고 후보
+    void showInterstitialIfEligible();
+  };
+
+  const handleMenuClose = () => {
+    close();
+    // 메뉴 닫힘 = 의도적 깊은 진입 후 탈출 → 광고 후보
+    void showInterstitialIfEligible();
   };
 
   return (
@@ -361,7 +387,14 @@ function App() {
         <div style={{ height: 96 }} />
       </div>
 
-      {schedules.length > 0 && <Fab onClick={openAddPayPicker} />}
+      {schedules.length > 0 && (
+        <Fab
+          onClick={openAddPayPicker}
+          bottomOffset={isInToss() ? 96 : 0}
+        />
+      )}
+
+      <BannerAd />
 
       <AddScheduleSheet
         open={sheet === "sch"}
@@ -394,7 +427,7 @@ function App() {
       />
       <MenuSheet
         open={sheet === "menu"}
-        onClose={close}
+        onClose={handleMenuClose}
         totals={totals}
         schedules={schedules}
         payments={payments}
