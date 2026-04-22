@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import type { Payment, Schedule } from "@/lib/calc";
 import {
   calcCredit,
@@ -7,6 +8,7 @@ import {
 } from "@/lib/calc";
 import { fmtWon } from "@/lib/format";
 import { BottomSheet } from "@/components/ui/BottomSheet";
+import { TermInfo } from "@/components/ui/TermInfo";
 
 type Totals = {
   totalPaid: number;
@@ -25,26 +27,33 @@ type Props = {
   rate: number;
   onClearPays: () => void;
   onReset: () => void;
+  onOpenHelp: () => void;
 };
 
 function Row({
   l,
   v,
   accent,
+  info,
 }: {
-  l: string;
+  l: ReactNode;
   v: string;
   accent?: boolean;
+  info?: string;
 }) {
   return (
     <div
       style={{
         display: "flex",
         justifyContent: "space-between",
+        alignItems: "center",
         padding: "4px 0",
       }}
     >
-      <span style={{ color: "#8B95A1" }}>{l}</span>
+      <span style={{ color: "#8B95A1", display: "flex", alignItems: "center" }}>
+        {l}
+        {info && <TermInfo desc={info} />}
+      </span>
       <span
         style={{
           color: accent ? "var(--pc)" : "#191F28",
@@ -89,6 +98,7 @@ export function MenuSheet({
   rate,
   onClearPays,
   onReset,
+  onOpenHelp,
 }: Props) {
   const remain =
     totals.totalScheduled > 0
@@ -105,6 +115,28 @@ export function MenuSheet({
 
   return (
     <BottomSheet open={open} onClose={onClose} title="더보기">
+      <button
+        onClick={() => {
+          onClose();
+          onOpenHelp();
+        }}
+        className="flex w-full items-center justify-between"
+        style={{
+          padding: "14px 16px",
+          marginBottom: 12,
+          border: "none",
+          borderRadius: 14,
+          background: "var(--pc-tint)",
+          color: "var(--pc)",
+          fontSize: 14,
+          fontWeight: 600,
+          cursor: "pointer",
+        }}
+      >
+        <span>📖 사용법 / 용어 도움말</span>
+        <span style={{ fontSize: 16 }}>›</span>
+      </button>
+
       <div
         style={{
           padding: 16,
@@ -115,7 +147,12 @@ export function MenuSheet({
       >
         <div style={{ fontSize: 13, color: "#4E5968", lineHeight: 1.8 }}>
           <Row l="실제 납부액" v={fmtWon(totals.totalPaid)} />
-          <Row l="충당액" v={fmtWon(totals.totalCredit)} accent />
+          <Row
+            l="충당액"
+            v={fmtWon(totals.totalCredit)}
+            accent
+            info="납부액에 선납 할인을 더한 금액. '이만큼 납부된 걸로 인정된다'는 뜻. 공식: 납부액 ÷ (1 − 연이율 × 선납일수 / 365)"
+          />
           <Row l="총 할인액" v={fmtWon(totals.totalDiscount)} />
           <Row l="전체 잔여액" v={remain} />
           <div style={{ height: 8 }} />
@@ -123,10 +160,12 @@ export function MenuSheet({
           <Row
             l="단리 실효"
             v={effS != null ? (effS * 100).toFixed(3) + "%" : "—"}
+            info="납부액 대비 실제 수익률을 단리로 환산. 미래가치 기준이라 표면이율보다 살짝 높음."
           />
           <Row
             l="복리 실효"
             v={effC != null ? (effC * 100).toFixed(3) + "%" : "—"}
+            info="같은 효과를 연복리로 환산한 값. 장기 비교용."
           />
         </div>
       </div>

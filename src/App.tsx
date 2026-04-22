@@ -12,8 +12,9 @@ import { AddPaymentSheet } from "@/components/sheets/AddPaymentSheet";
 import { AddBulkSheet } from "@/components/sheets/AddBulkSheet";
 import { RateSheet } from "@/components/sheets/RateSheet";
 import { MenuSheet } from "@/components/sheets/MenuSheet";
+import { HelpSheet } from "@/components/sheets/HelpSheet";
 
-type SheetKind = null | "sch" | "pay" | "bulk" | "rate" | "menu";
+type SheetKind = null | "sch" | "pay" | "bulk" | "rate" | "menu" | "help";
 
 type PersistedState = {
   schedules: Schedule[];
@@ -30,6 +31,57 @@ const DEFAULT_STATE: PersistedState = {
   schIdCounter: 1,
   payIdCounter: 1,
 };
+
+function Step({
+  n,
+  title,
+  desc,
+}: {
+  n: number;
+  title: string;
+  desc: string;
+}) {
+  return (
+    <div className="flex" style={{ gap: 12, marginBottom: 12 }}>
+      <div
+        className="flex items-center justify-center flex-shrink-0"
+        style={{
+          width: 26,
+          height: 26,
+          borderRadius: 999,
+          background: "var(--pc-tint)",
+          color: "var(--pc)",
+          fontSize: 13,
+          fontWeight: 700,
+        }}
+      >
+        {n}
+      </div>
+      <div className="min-w-0 flex-1">
+        <div
+          style={{
+            fontSize: 14,
+            fontWeight: 700,
+            color: "#191F28",
+            letterSpacing: -0.2,
+          }}
+        >
+          {title}
+        </div>
+        <div
+          style={{
+            fontSize: 12,
+            color: "#8B95A1",
+            marginTop: 1,
+            lineHeight: 1.5,
+          }}
+        >
+          {desc}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function App() {
   const [loaded, setLoaded] = useState(false);
@@ -202,40 +254,62 @@ function App() {
           <div
             style={{
               margin: "0 16px 12px",
-              padding: "36px 20px",
+              padding: "24px 20px 20px",
               background: "#fff",
               borderRadius: 18,
-              textAlign: "center",
               boxShadow:
                 "0 1px 3px rgba(0,0,0,0.03), 0 4px 14px rgba(17,24,39,0.04)",
             }}
           >
-            <div style={{ fontSize: 40, marginBottom: 8 }}>📅</div>
             <div
               style={{
                 fontSize: 15,
                 fontWeight: 700,
                 color: "#191F28",
-                marginBottom: 4,
+                marginBottom: 14,
+                textAlign: "center",
               }}
             >
-              일정을 추가해 보세요
+              3단계로 시작해보세요
             </div>
-            <div
-              style={{
-                fontSize: 13,
-                color: "#8B95A1",
-                marginBottom: 16,
-              }}
-            >
-              중도금/옵션비 별로 등록하면 할인액이 자동 계산돼요
-            </div>
+            <Step
+              n={1}
+              title="일정 추가"
+              desc="중도금이나 옵션비의 기준일과 금액을 등록"
+            />
+            <Step
+              n={2}
+              title="납부 입력"
+              desc="실제 납부일과 금액을 + 버튼으로 추가"
+            />
+            <Step
+              n={3}
+              title="절약 확인"
+              desc="선납으로 아낀 금액과 충당 진행률을 한눈에"
+            />
+            <div style={{ height: 14 }} />
             <PrimaryButton
               onClick={() => setSheet("sch")}
               style={{ height: 48 }}
             >
               + 일정 추가
             </PrimaryButton>
+            <button
+              onClick={() => setSheet("help")}
+              style={{
+                width: "100%",
+                marginTop: 8,
+                padding: 10,
+                border: "none",
+                background: "transparent",
+                color: "#8B95A1",
+                fontSize: 13,
+                fontWeight: 500,
+                cursor: "pointer",
+              }}
+            >
+              사용법 자세히 보기
+            </button>
           </div>
         ) : (
           <>
@@ -315,7 +389,9 @@ function App() {
         rate={rate}
         onClearPays={() => setPayments([])}
         onReset={handleReset}
+        onOpenHelp={() => setSheet("help")}
       />
+      <HelpSheet open={sheet === "help"} onClose={close} />
     </div>
   );
 }

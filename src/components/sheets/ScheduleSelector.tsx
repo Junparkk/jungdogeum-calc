@@ -37,6 +37,28 @@ export function ScheduleSelector({
     );
   }
 
+  const allLocked = sorted.every(
+    (s) => !canPayInto(s, schedules, payments, rate).ok,
+  );
+
+  if (allLocked) {
+    return (
+      <div
+        style={{
+          padding: "14px",
+          background: "#FFFBEB",
+          borderRadius: 14,
+          fontSize: 13,
+          color: "#8B6914",
+          lineHeight: 1.5,
+        }}
+      >
+        모든 일정이 충당 완료됐어요. 새 일정을 추가하거나 기존 납부를
+        조정해주세요.
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col" style={{ gap: 6 }}>
       {sorted.map((s) => {
