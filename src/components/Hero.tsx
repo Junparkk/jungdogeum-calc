@@ -51,10 +51,9 @@ export function Hero({ totals, rate, onRateClick }: Props) {
     totals;
   const hasData = totalPaid > 0;
   const effS = effectiveSimple(avgDays || 0, rate);
-  // 납부 기준 진행률 — 사용자가 실제로 낸 비율
+  // Hero 진행률은 충당(=실납입+할인) 기준 — 잔여 칩과 합산이 100%로 떨어져야 자연스러움
   const pct =
-    totalScheduled > 0 ? Math.min(100, (totalPaid / totalScheduled) * 100) : 0;
-  // Hero 잔여(우측 칩)는 할인 효과 반영해서 "실제 더 채워야 할 의무"를 표시
+    totalScheduled > 0 ? Math.min(100, (totalCredit / totalScheduled) * 100) : 0;
   const realRemain = Math.max(0, totalScheduled - totalCredit);
 
   return (
@@ -119,10 +118,10 @@ export function Hero({ totals, rate, onRateClick }: Props) {
           }}
         >
           <span style={{ whiteSpace: "nowrap" }}>
-            납부 {totalScheduled > 0 ? pct.toFixed(1) : "0.0"}%
+            충당 {totalScheduled > 0 ? pct.toFixed(1) : "0.0"}%
           </span>
           <span style={{ whiteSpace: "nowrap" }}>
-            {fmtShort(totalPaid)}
+            {fmtShort(totalCredit)}
             {totalScheduled > 0 ? " / " + fmtShort(totalScheduled) : ""}
           </span>
         </div>
