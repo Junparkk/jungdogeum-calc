@@ -43,7 +43,7 @@ export function TopBar({ onMenu }: Props) {
             />
           </svg>
         </div>
-        선납 계산기
+        중도금 선납 계산기
       </div>
       <button
         onClick={onMenu}

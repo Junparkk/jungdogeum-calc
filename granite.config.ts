@@ -3,7 +3,7 @@ import { defineConfig } from "@apps-in-toss/web-framework/config";
 export default defineConfig({
   appName: "prepayment-calculator",
   brand: {
-    displayName: "선납 할인 계산기",
+    displayName: "중도금 선납 계산기",
     primaryColor: "#185FA5",
     icon: "",
   },
