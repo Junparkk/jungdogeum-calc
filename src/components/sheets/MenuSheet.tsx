@@ -1,6 +1,12 @@
-import { BottomSheet } from "@/components/ui/BottomSheet";
-import { effectiveCompound, effectiveSimple } from "@/lib/calc";
+import type { Payment, Schedule } from "@/lib/calc";
+import {
+  calcCredit,
+  daysBetween,
+  effectiveCompound,
+  effectiveSimple,
+} from "@/lib/calc";
 import { fmtWon } from "@/lib/format";
+import { BottomSheet } from "@/components/ui/BottomSheet";
 
 type Totals = {
   totalPaid: number;
@@ -14,6 +20,8 @@ type Props = {
   open: boolean;
   onClose: () => void;
   totals: Totals;
+  schedules: Schedule[];
+  payments: Payment[];
   rate: number;
   onClearPays: () => void;
   onReset: () => void;
@@ -50,10 +58,34 @@ function Row({
   );
 }
 
+function aggregateByKind(
+  schedules: Schedule[],
+  payments: Payment[],
+  rate: number,
+  kind: "principal" | "option",
+) {
+  const ks = schedules.filter((s) => s.kind === kind);
+  if (ks.length === 0) return null;
+  const scheduled = ks.reduce((a, s) => a + s.amt, 0);
+  let paid = 0;
+  let credit = 0;
+  for (const p of payments) {
+    const sch = ks.find((s) => s.id === p.schId);
+    if (!sch) continue;
+    const days = daysBetween(p.date, sch.date);
+    paid += p.amt;
+    credit += calcCredit(p.amt, days, rate);
+  }
+  const remain = Math.max(0, scheduled - credit);
+  return { scheduled, paid, credit, remain };
+}
+
 export function MenuSheet({
   open,
   onClose,
   totals,
+  schedules,
+  payments,
   rate,
   onClearPays,
   onReset,
@@ -66,6 +98,10 @@ export function MenuSheet({
     totals.avgDays > 0 ? effectiveSimple(totals.avgDays, rate) : null;
   const effC =
     totals.avgDays > 0 ? effectiveCompound(totals.avgDays, rate) : null;
+
+  const principal = aggregateByKind(schedules, payments, rate, "principal");
+  const option = aggregateByKind(schedules, payments, rate, "option");
+  const showSplit = principal !== null && option !== null;
 
   return (
     <BottomSheet open={open} onClose={onClose} title="더보기">
@@ -94,6 +130,43 @@ export function MenuSheet({
           />
         </div>
       </div>
+
+      {showSplit && (
+        <div
+          style={{
+            padding: 16,
+            background: "#F9FAFB",
+            borderRadius: 14,
+            marginBottom: 14,
+          }}
+        >
+          <div
+            style={{
+              fontSize: 12,
+              color: "#8B95A1",
+              fontWeight: 600,
+              letterSpacing: 0.04,
+              marginBottom: 6,
+            }}
+          >
+            종류별 합계
+          </div>
+          <div style={{ fontSize: 13, color: "#4E5968", lineHeight: 1.8 }}>
+            <Row
+              l="중도금 충당 / 예정"
+              v={`${fmtWon(principal!.credit)} / ${fmtWon(principal!.scheduled)}`}
+            />
+            <Row l="중도금 잔여" v={fmtWon(principal!.remain)} />
+            <div style={{ height: 4 }} />
+            <Row
+              l="옵션비 충당 / 예정"
+              v={`${fmtWon(option!.credit)} / ${fmtWon(option!.scheduled)}`}
+            />
+            <Row l="옵션비 잔여" v={fmtWon(option!.remain)} />
+          </div>
+        </div>
+      )}
+
       <button
         onClick={() => {
           if (totals.totalPaid === 0) return;

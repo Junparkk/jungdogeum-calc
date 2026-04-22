@@ -1,11 +1,13 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { Payment, Schedule } from "@/lib/calc";
+import { canPayInto, KIND_LABEL } from "@/lib/calc";
 import { BottomSheet } from "@/components/ui/BottomSheet";
 import { Field } from "@/components/ui/Field";
 import { BigInput } from "@/components/ui/BigInput";
 import { PrimaryButton } from "@/components/ui/PrimaryButton";
 import { QuickAmt } from "@/components/ui/QuickAmt";
 import { fmtAmtInput, fmtShort, parseAmt } from "@/lib/format";
+import { ScheduleSelector } from "./ScheduleSelector";
 
 type BulkPay = Omit<Payment, "id">;
 
@@ -13,21 +15,45 @@ type Props = {
   open: boolean;
   onClose: () => void;
   onSubmit: (pays: BulkPay[]) => void;
-  sch: Schedule | null;
+  schedules: Schedule[];
+  payments: Payment[];
+  rate: number;
+  preselectedSch: Schedule | null;
 };
 
 const DAY_OPTS = [1, 5, 10, 15, 20, 25];
 
-export function AddBulkSheet({ open, onClose, onSubmit, sch }: Props) {
+export function AddBulkSheet({
+  open,
+  onClose,
+  onSubmit,
+  schedules,
+  payments,
+  rate,
+  preselectedSch,
+}: Props) {
   const today = new Date().toISOString().slice(0, 7);
+  const [schId, setSchId] = useState<number | null>(null);
   const [start, setStart] = useState(today);
   const [end, setEnd] = useState("2028-02");
   const [day, setDay] = useState("10");
   const [amt, setAmt] = useState(0);
   const [err, setErr] = useState("");
 
+  const defaultId = useMemo(() => {
+    if (preselectedSch) return preselectedSch.id;
+    const candidates = [...schedules].sort((a, b) =>
+      a.date.localeCompare(b.date),
+    );
+    const firstUnlocked = candidates.find(
+      (s) => canPayInto(s, schedules, payments, rate).ok,
+    );
+    return firstUnlocked?.id ?? candidates[0]?.id ?? null;
+  }, [open, preselectedSch, schedules, payments, rate]); // eslint-disable-line react-hooks/exhaustive-deps
+
   useEffect(() => {
     if (open) {
+      setSchId(defaultId);
       setStart(today);
       setEnd("2028-02");
       setDay("10");
@@ -37,8 +63,12 @@ export function AddBulkSheet({ open, onClose, onSubmit, sch }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
+  const sch = schedules.find((s) => s.id === schId) ?? null;
+
   const submit = () => {
-    if (!sch) return;
+    if (!sch) return setErr("일정을 선택해 주세요");
+    const lock = canPayInto(sch, schedules, payments, rate);
+    if (!lock.ok) return setErr(lock.reason);
     if (!start || !end) return setErr("시작/종료 월을 선택해 주세요");
     if (start > end) return setErr("시작 월이 종료 월보다 늦습니다");
     if (!amt || amt <= 0) return setErr("월 납부액을 입력해 주세요");
@@ -73,21 +103,15 @@ export function AddBulkSheet({ open, onClose, onSubmit, sch }: Props) {
 
   return (
     <BottomSheet open={open} onClose={onClose} title="월 일괄 추가">
-      {sch && (
-        <div
-          style={{
-            padding: "10px 12px",
-            background: "var(--pc-tint)",
-            borderRadius: 12,
-            marginBottom: 14,
-            fontSize: 13,
-            color: "var(--pc)",
-            fontWeight: 600,
-          }}
-        >
-          {sch.name} · 기준일 {sch.date}
-        </div>
-      )}
+      <Field label={`${KIND_LABEL.principal} / ${KIND_LABEL.option} 선택`}>
+        <ScheduleSelector
+          schedules={schedules}
+          payments={payments}
+          rate={rate}
+          value={schId}
+          onChange={setSchId}
+        />
+      </Field>
       <div style={{ display: "flex", gap: 10 }}>
         <div style={{ flex: 1 }}>
           <Field label="시작 월">

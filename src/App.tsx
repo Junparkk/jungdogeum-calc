@@ -48,7 +48,12 @@ function App() {
     loadState<PersistedState>().then((saved) => {
       if (cancelled) return;
       const s = saved ?? DEFAULT_STATE;
-      setSchedules(s.schedules ?? []);
+      // kind 필드 없는 구버전 데이터는 'principal'로 마이그레이션
+      const migrated = (s.schedules ?? []).map((sch) => ({
+        ...sch,
+        kind: sch.kind ?? "principal",
+      }));
+      setSchedules(migrated);
       setPayments(s.payments ?? []);
       setRate(typeof s.rate === "number" ? s.rate : 0.05);
       setSchIdCounter(s.schIdCounter ?? 1);
@@ -136,6 +141,10 @@ function App() {
     setSheetSch(sch);
     setSheet("bulk");
   };
+  const openAddPayPicker = () => {
+    setSheetSch(null);
+    setSheet("pay");
+  };
   const close = () => setSheet(null);
 
   const handleReset = () => {
@@ -176,10 +185,16 @@ function App() {
               letterSpacing: -0.4,
             }}
           >
-            중도금 일정
+            납부 일정
           </div>
           <span style={{ fontSize: 13, color: "#8B95A1", fontWeight: 500 }}>
-            {schedules.length}건
+            {(() => {
+              const p = schedules.filter((s) => s.kind === "principal").length;
+              const o = schedules.filter((s) => s.kind === "option").length;
+              if (o === 0) return `${p}건`;
+              if (p === 0) return `${o}건`;
+              return `중도 ${p} · 옵션 ${o}`;
+            })()}
           </span>
         </div>
 
@@ -204,7 +219,7 @@ function App() {
                 marginBottom: 4,
               }}
             >
-              중도금을 추가해 보세요
+              일정을 추가해 보세요
             </div>
             <div
               style={{
@@ -213,13 +228,13 @@ function App() {
                 marginBottom: 16,
               }}
             >
-              기준일과 금액을 입력하면 할인액이 자동 계산돼요
+              중도금/옵션비 별로 등록하면 할인액이 자동 계산돼요
             </div>
             <PrimaryButton
               onClick={() => setSheet("sch")}
               style={{ height: 48 }}
             >
-              + 중도금 추가
+              + 일정 추가
             </PrimaryButton>
           </div>
         ) : (
@@ -252,7 +267,7 @@ function App() {
                 cursor: "pointer",
               }}
             >
-              + 중도금 추가
+              + 일정 추가
             </button>
           </>
         )}
@@ -260,7 +275,7 @@ function App() {
         <div style={{ height: 96 }} />
       </div>
 
-      {schedules.length > 0 && <Fab onClick={() => openAddPay(schedules[0])} />}
+      {schedules.length > 0 && <Fab onClick={openAddPayPicker} />}
 
       <AddScheduleSheet
         open={sheet === "sch"}
@@ -271,13 +286,19 @@ function App() {
         open={sheet === "pay"}
         onClose={close}
         onSubmit={addPayment}
-        sch={sheetSch}
+        schedules={schedules}
+        payments={payments}
+        rate={rate}
+        preselectedSch={sheetSch}
       />
       <AddBulkSheet
         open={sheet === "bulk"}
         onClose={close}
         onSubmit={addBulkPayments}
-        sch={sheetSch}
+        schedules={schedules}
+        payments={payments}
+        rate={rate}
+        preselectedSch={sheetSch}
       />
       <RateSheet
         open={sheet === "rate"}
@@ -289,6 +310,8 @@ function App() {
         open={sheet === "menu"}
         onClose={close}
         totals={totals}
+        schedules={schedules}
+        payments={payments}
         rate={rate}
         onClearPays={() => setPayments([])}
         onReset={handleReset}

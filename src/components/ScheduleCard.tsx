@@ -26,6 +26,7 @@ export function ScheduleCard({
   onRemovePay,
 }: Props) {
   const [open, setOpen] = useState(defaultOpen);
+  const isOption = sch.kind === "option";
 
   const schPays = payments
     .filter((p) => p.schId === sch.id)
@@ -66,38 +67,69 @@ export function ScheduleCard({
             width: 40,
             height: 40,
             borderRadius: 12,
-            background: "var(--pc-tint)",
+            background: isOption ? "#FFF4E5" : "var(--pc-tint)",
           }}
         >
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-            <rect
-              x="3"
-              y="5"
-              width="18"
-              height="16"
-              rx="3"
-              stroke="var(--pc)"
-              strokeWidth="1.8"
-            />
-            <path
-              d="M3 10h18M8 3v4M16 3v4"
-              stroke="var(--pc)"
-              strokeWidth="1.8"
-              strokeLinecap="round"
-            />
-          </svg>
+          {isOption ? (
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+              <path
+                d="M20 12l-8 8a2.83 2.83 0 0 1-4 0L3 15a2.83 2.83 0 0 1 0-4l8-8h9v9z"
+                stroke="#F59E0B"
+                strokeWidth="1.8"
+                strokeLinejoin="round"
+              />
+              <circle cx="15.5" cy="8.5" r="1.5" fill="#F59E0B" />
+            </svg>
+          ) : (
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+              <rect
+                x="3"
+                y="5"
+                width="18"
+                height="16"
+                rx="3"
+                stroke="var(--pc)"
+                strokeWidth="1.8"
+              />
+              <path
+                d="M3 10h18M8 3v4M16 3v4"
+                stroke="var(--pc)"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+              />
+            </svg>
+          )}
         </div>
         <div className="min-w-0 flex-1">
           <div
-            className="overflow-hidden text-ellipsis whitespace-nowrap"
-            style={{
-              fontSize: 15,
-              fontWeight: 700,
-              color: "#191F28",
-              letterSpacing: -0.3,
-            }}
+            className="flex items-center"
+            style={{ gap: 6, minWidth: 0 }}
           >
-            {sch.name}
+            <span
+              className="overflow-hidden text-ellipsis whitespace-nowrap"
+              style={{
+                fontSize: 15,
+                fontWeight: 700,
+                color: "#191F28",
+                letterSpacing: -0.3,
+                minWidth: 0,
+              }}
+            >
+              {sch.name}
+            </span>
+            <span
+              className="flex-shrink-0"
+              style={{
+                fontSize: 10,
+                fontWeight: 700,
+                padding: "1px 6px",
+                borderRadius: 999,
+                background: isOption ? "#FFF4E5" : "var(--pc-tint)",
+                color: isOption ? "#F59E0B" : "var(--pc)",
+              }}
+            >
+              {isOption ? "옵션" : "중도"}
+            </span>
           </div>
           <div
             style={{
