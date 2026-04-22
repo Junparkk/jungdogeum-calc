@@ -55,6 +55,25 @@ function Term({ children }: { children: ReactNode }) {
 export function HelpSheet({ open, onClose }: Props) {
   return (
     <BottomSheet open={open} onClose={onClose} title="도움말">
+      <div
+        style={{
+          padding: "12px 14px",
+          background: "#FFF9E6",
+          border: "1px solid #FDE68A",
+          borderRadius: 12,
+          fontSize: 12,
+          color: "#8B6914",
+          lineHeight: 1.6,
+          marginBottom: 18,
+        }}
+      >
+        <b style={{ fontWeight: 700 }}>⚠️ 꼭 확인해 주세요</b>
+        <br />
+        이 앱의 계산 결과는 참고용이에요. 시행사마다 적용 방식 · 기준일
+        처리 · 절사 규칙이 조금씩 다를 수 있으니, 실제 납부 전에 분양
+        계약서와 시행사 안내를 반드시 확인하세요.
+      </div>
+
       <Section title="이 앱은 뭐 하는 거예요?">
         분양 중도금이나 옵션비를 미리 납부할 때 받는{" "}
         <Term>선납 할인 금액</Term>을 계산하는 도구예요. 납부일과 기준일의

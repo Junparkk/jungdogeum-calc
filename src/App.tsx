@@ -346,6 +346,18 @@ function App() {
           </>
         )}
 
+        <div
+          style={{
+            padding: "0 20px",
+            fontSize: 11,
+            color: "#8B95A1",
+            lineHeight: 1.6,
+            textAlign: "center",
+          }}
+        >
+          ⚠️ 계산 결과는 참고용이에요. 실제 납부 전에 분양 계약서와
+          시행사 안내를 꼭 확인해 주세요.
+        </div>
         <div style={{ height: 96 }} />
       </div>
 
