@@ -1,6 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
 import type { Payment, Schedule } from "@/lib/calc";
-import { canPayInto, KIND_LABEL, paidFor } from "@/lib/calc";
+import {
+  calcCredit,
+  canPayInto,
+  daysBetween,
+  KIND_LABEL,
+  paidFor,
+  totalCreditOf,
+  totalScheduledOf,
+} from "@/lib/calc";
 import { BottomSheet } from "@/components/ui/BottomSheet";
 import { Field } from "@/components/ui/Field";
 import { BigInput } from "@/components/ui/BigInput";
@@ -17,6 +25,7 @@ type Props = {
   onSubmit: (pays: BulkPay[]) => void;
   schedules: Schedule[];
   payments: Payment[];
+  rate: number;
   preselectedSch: Schedule | null;
 };
 
@@ -28,6 +37,7 @@ export function AddBulkSheet({
   onSubmit,
   schedules,
   payments,
+  rate,
   preselectedSch,
 }: Props) {
   const today = new Date().toISOString().slice(0, 7);
@@ -96,13 +106,27 @@ export function AddBulkSheet({
     if (pays.length === 0)
       return setErr("기준일 이전에 해당하는 날짜가 없어요");
 
-    // 납부합 한도 검증 (납부 기준)
+    // 1) 일정 자체 납부 한도 검증
     const addedPaid = pays.reduce((s, p) => s + p.amt, 0);
-    const current = paidFor(sch, payments);
-    const overflow = current + addedPaid - sch.amt;
+    const overflow = paidFor(sch, payments) + addedPaid - sch.amt;
     if (overflow > 0.5) {
       return setErr(
-        `${pays.length}회 일괄 시 납부합이 ${fmtWon(overflow)} 초과해요. 월 납부액이나 기간을 줄여주세요.`,
+        `${pays.length}회 일괄 시 일정 잔여를 ${fmtWon(overflow)} 초과해요. 월 납부액이나 기간을 줄여주세요.`,
+      );
+    }
+
+    // 2) 전체 분양가(충당 합계) 한도 검증
+    const addedCredit = pays.reduce(
+      (s, p) =>
+        s + calcCredit(p.amt, daysBetween(p.date, sch.date), rate),
+      0,
+    );
+    const totalScheduled = totalScheduledOf(schedules);
+    const totalCredit = totalCreditOf(schedules, payments, rate);
+    const creditOverflow = totalCredit + addedCredit - totalScheduled;
+    if (creditOverflow > 0.5) {
+      return setErr(
+        `${pays.length}회 일괄 시 전체 분양가를 ${fmtWon(creditOverflow)} 초과해요. 월 납부액이나 기간을 줄여주세요.`,
       );
     }
 

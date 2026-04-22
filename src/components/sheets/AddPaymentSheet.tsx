@@ -1,11 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import type { Payment, Schedule } from "@/lib/calc";
-import {
-  canPayInto,
-  KIND_LABEL,
-  maxPayInto,
-  paidFor,
-} from "@/lib/calc";
+import { canPayInto, KIND_LABEL, paymentCap } from "@/lib/calc";
 import { BottomSheet } from "@/components/ui/BottomSheet";
 import { Field } from "@/components/ui/Field";
 import { BigInput } from "@/components/ui/BigInput";
@@ -26,6 +21,7 @@ type Props = {
   }) => void;
   schedules: Schedule[];
   payments: Payment[];
+  rate: number;
   preselectedSch: Schedule | null;
 };
 
@@ -35,6 +31,7 @@ export function AddPaymentSheet({
   onSubmit,
   schedules,
   payments,
+  rate,
   preselectedSch,
 }: Props) {
   const today = new Date().toISOString().slice(0, 10);
@@ -67,11 +64,11 @@ export function AddPaymentSheet({
 
   const sch = schedules.find((s) => s.id === schId) ?? null;
 
-  // 선택된 일정의 납부 한도 (납부 기준). 입력 가이드 + 검증에 사용.
+  // 두 한도(개별 일정 납부합 / 전체 분양가 충당) 중 작은 값
   const limit = useMemo(() => {
-    if (!sch) return null;
-    return maxPayInto(sch, payments);
-  }, [sch, payments]);
+    if (!sch || !date || date >= sch.date) return null;
+    return paymentCap(sch, date, schedules, payments, rate);
+  }, [sch, date, schedules, payments, rate]);
 
   const submit = () => {
     if (!sch) return setErr("일정을 선택해 주세요");
@@ -82,11 +79,11 @@ export function AddPaymentSheet({
     if (date >= sch.date)
       return setErr("납부일은 기준일보다 이전이어야 해요");
 
-    // 납부 한도 초과 검증
-    const cap = maxPayInto(sch, payments);
-    if (paidFor(sch, payments) + amt > sch.amt + 0.5) {
+    const cap = paymentCap(sch, date, schedules, payments, rate);
+    if (amt > cap + 0.5) {
       return setErr(
-        `납부합이 일정 금액(${fmtWon(sch.amt)})을 초과해요. 최대 ${fmtWon(cap)}까지 입력 가능`,
+        `한도 초과예요. 최대 ${fmtWon(cap)}까지 입력 가능 ` +
+          `(전체 분양가 또는 일정 잔여 중 더 작은 값)`,
       );
     }
 

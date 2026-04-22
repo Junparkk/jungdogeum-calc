@@ -35,11 +35,54 @@ export function creditFor(
     );
 }
 
-// 이 일정에 추가할 수 있는 최대 납부액 (납부 기준).
-// 일정 명목 금액을 그대로 한도로 사용 — 사용자가 "1차 4천만"으로 인식한
-// 그 금액까지만 입력 가능. 할인은 별도 누적이라 한도 계산엔 영향 없음.
+// 이 일정에 추가할 수 있는 최대 납부액 (납부 기준만).
+// 일정 명목 금액을 그대로 한도로 사용.
 export function maxPayInto(sch: Schedule, payments: Payment[]): number {
   return Math.max(0, sch.amt - paidFor(sch, payments));
+}
+
+// 전체 일정의 명목 금액 합계 (= 사용자가 인식하는 분양가/총 의무액)
+export function totalScheduledOf(schedules: Schedule[]): number {
+  return schedules.reduce((s, x) => s + x.amt, 0);
+}
+
+// 전체 충당액 합계 (납부 + 모든 선납 할인)
+export function totalCreditOf(
+  schedules: Schedule[],
+  payments: Payment[],
+  rate: number,
+): number {
+  return payments.reduce((s, p) => {
+    const sch = schedules.find((x) => x.id === p.schId);
+    if (!sch) return s;
+    return s + calcCredit(p.amt, daysBetween(p.date, sch.date), rate);
+  }, 0);
+}
+
+// 이번 단건 납부에 적용되는 두 한도의 교집합:
+//   1) 이 일정의 잔여 (sch.amt - paidFor)
+//   2) 전체 분양가 잔여를 충당으로 채울 때 가능한 amt
+//      (충당 = amt / (1 - r*t), 충당 합 ≤ totalScheduled 이어야 함)
+// 둘 중 작은 값을 반환.
+export function paymentCap(
+  sch: Schedule,
+  payDate: string,
+  schedules: Schedule[],
+  payments: Payment[],
+  rate: number,
+): number {
+  const paidRemain = Math.max(0, sch.amt - paidFor(sch, payments));
+
+  const totalScheduled = totalScheduledOf(schedules);
+  const totalCredit = totalCreditOf(schedules, payments, rate);
+  const creditRemain = Math.max(0, totalScheduled - totalCredit);
+
+  const t = daysBetween(payDate, sch.date) / 365;
+  const rt = rate * t;
+  const creditCap =
+    rt >= 1 ? creditRemain : Math.floor(creditRemain * (1 - rt));
+
+  return Math.max(0, Math.min(paidRemain, creditCap));
 }
 
 // 같은 종류(kind) 안에서 기준일이 더 빠른 일정이 채워져야
