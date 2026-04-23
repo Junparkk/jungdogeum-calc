@@ -384,6 +384,17 @@ function App() {
           ⚠️ 계산 결과는 참고용이에요. 실제 납부 전에 분양 계약서와
           시행사 안내를 꼭 확인해 주세요.
         </div>
+        <div
+          style={{
+            marginTop: 12,
+            padding: "0 20px",
+            fontSize: 10,
+            color: "#B0B8C1",
+            textAlign: "center",
+          }}
+        >
+          © 2026 Outback Studio
+        </div>
         <div style={{ height: 96 }} />
       </div>
 

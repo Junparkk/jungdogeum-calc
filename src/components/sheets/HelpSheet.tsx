@@ -126,6 +126,10 @@ export function HelpSheet({ open, onClose }: Props) {
         </div>
       </Section>
 
+      <Section title="만든이">
+        <Term>Outback Studio</Term>
+        <br />© 2026 All rights reserved.
+      </Section>
     </BottomSheet>
   );
 }
