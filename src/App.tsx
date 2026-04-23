@@ -4,7 +4,7 @@ import { calcCredit, daysBetween } from "@/lib/calc";
 import { clearState, loadState, saveState } from "@/lib/storage";
 import {
   initAds,
-  isInToss,
+  isBannerSupported,
   noteAction,
   showInterstitialIfEligible,
 } from "@/lib/ads";
@@ -401,7 +401,7 @@ function App() {
       {schedules.length > 0 && (
         <Fab
           onClick={openAddPayPicker}
-          bottomOffset={isInToss() ? 96 : 0}
+          bottomOffset={isBannerSupported() ? 96 : 0}
         />
       )}
 
