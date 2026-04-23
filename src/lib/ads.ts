@@ -4,10 +4,9 @@
 // v2 (loadFullScreenAd)는 토스앱 5.247.0+ 필요해서 지원 기기가 좁음.
 //
 // 전면형 가드 (모두 AND):
-//  1. 세션 시작 후 60초 이상
-//  2. 의미있는 액션 2회 이상
-//  3. 마지막 노출 후 2시간 이상
-//  4. 자연스러운 트리거 시점 (월 일괄/초기화/메뉴 닫힘)
+//  1. 의미있는 액션 2회 이상
+//  2. 마지막 노출 후 30분 이상
+//  3. 자연스러운 트리거 시점 (월 일괄/초기화/메뉴 닫힘)
 
 import {
   GoogleAdMob,
@@ -24,11 +23,9 @@ export const INTERSTITIAL_AD_GROUP_ID = import.meta.env.PROD
   : "ait-ad-test-interstitial-id";
 
 const LAST_SHOWN_KEY = "prepay:ads:lastInterstitial";
-const CAP_MS = 2 * 60 * 60 * 1000; // 2시간
-const MIN_SESSION_MS = 60 * 1000; // 60초
+const CAP_MS = 30 * 60 * 1000; // 30분
 const MIN_ACTIONS = 2;
 
-let sessionStart = Date.now();
 let actionCount = 0;
 let interstitialLoaded = false;
 let interstitialCleanup: (() => void) | undefined;
@@ -50,7 +47,6 @@ export function isInterstitialSupported(): boolean {
 }
 
 export function initAds() {
-  sessionStart = Date.now();
   actionCount = 0;
   preloadInterstitial();
 }
@@ -122,10 +118,9 @@ export async function showInterstitialIfEligible(): Promise<boolean> {
   if (!showSupported()) return false;
   if (!interstitialLoaded) return false;
 
-  const now = Date.now();
-  if (now - sessionStart < MIN_SESSION_MS) return false;
   if (actionCount < MIN_ACTIONS) return false;
 
+  const now = Date.now();
   const last = await getLastShown();
   if (now - last < CAP_MS) return false;
 
