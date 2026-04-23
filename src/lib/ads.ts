@@ -1,5 +1,7 @@
-// 토스 인앱 광고 래퍼. SDK가 알아서 환경 감지(isSupported)를 해주므로
-// 추가적인 환경 체크 없이 그대로 호출하고 결과만 본다.
+// 토스 인앱 광고 래퍼.
+//
+// 전면형은 v1 API (GoogleAdMob.load/showAppsInTossAdMob) 사용 — pet과 동일.
+// v2 (loadFullScreenAd)는 토스앱 5.247.0+ 필요해서 지원 기기가 좁음.
 //
 // 전면형 가드 (모두 AND):
 //  1. 세션 시작 후 60초 이상
@@ -8,10 +10,9 @@
 //  4. 자연스러운 트리거 시점 (월 일괄/초기화/메뉴 닫힘)
 
 import {
+  GoogleAdMob,
   Storage,
   TossAds,
-  loadFullScreenAd,
-  showFullScreenAd,
 } from "@apps-in-toss/web-framework";
 
 // production 빌드에서만 실 ID, dev에서는 테스트 ID
@@ -30,6 +31,7 @@ const MIN_ACTIONS = 2;
 let sessionStart = Date.now();
 let actionCount = 0;
 let interstitialLoaded = false;
+let interstitialCleanup: (() => void) | undefined;
 
 export function isBannerSupported(): boolean {
   try {
@@ -41,7 +43,7 @@ export function isBannerSupported(): boolean {
 
 export function isInterstitialSupported(): boolean {
   try {
-    return loadFullScreenAd.isSupported() === true;
+    return GoogleAdMob.loadAppsInTossAdMob.isSupported() === true;
   } catch {
     return false;
   }
@@ -56,10 +58,16 @@ export function initAds() {
 function preloadInterstitial() {
   if (!isInterstitialSupported()) return;
   try {
-    loadFullScreenAd({
+    interstitialCleanup?.();
+    interstitialCleanup = undefined;
+    interstitialLoaded = false;
+
+    interstitialCleanup = GoogleAdMob.loadAppsInTossAdMob({
       options: { adGroupId: INTERSTITIAL_AD_GROUP_ID },
       onEvent: (event) => {
-        if (event.type === "loaded") interstitialLoaded = true;
+        if (event.type === "loaded") {
+          interstitialLoaded = true;
+        }
       },
       onError: () => {
         interstitialLoaded = false;
@@ -102,8 +110,16 @@ async function setLastShown(ts: number) {
   }
 }
 
+function showSupported(): boolean {
+  try {
+    return GoogleAdMob.showAppsInTossAdMob.isSupported() === true;
+  } catch {
+    return false;
+  }
+}
+
 export async function showInterstitialIfEligible(): Promise<boolean> {
-  if (!isInterstitialSupported()) return false;
+  if (!showSupported()) return false;
   if (!interstitialLoaded) return false;
 
   const now = Date.now();
@@ -114,15 +130,18 @@ export async function showInterstitialIfEligible(): Promise<boolean> {
   if (now - last < CAP_MS) return false;
 
   try {
-    showFullScreenAd({
+    GoogleAdMob.showAppsInTossAdMob({
       options: { adGroupId: INTERSTITIAL_AD_GROUP_ID },
       onEvent: (event) => {
-        if (event.type === "dismissed") {
+        if (event.type === "dismissed" || event.type === "failedToShow") {
           interstitialLoaded = false;
           preloadInterstitial();
         }
       },
-      onError: () => {},
+      onError: () => {
+        interstitialLoaded = false;
+        preloadInterstitial();
+      },
     });
     await setLastShown(now);
     return true;
