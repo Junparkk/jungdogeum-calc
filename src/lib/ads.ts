@@ -13,9 +13,14 @@ import {
   showFullScreenAd,
 } from "@apps-in-toss/web-framework";
 
-// 실제 운영 시 Toss 콘솔에서 발급받은 adGroupId로 교체
-export const BANNER_AD_GROUP_ID = "ait-ad-test-banner-id";
-export const INTERSTITIAL_AD_GROUP_ID = "ait-ad-test-interstitial-id";
+// 환경별 분기: production 빌드에서만 실 ID 사용 (dev에서 실수 방지).
+// Toss 정책: 실 ID로 테스트 시 정책 위반으로 불이익 가능.
+export const BANNER_AD_GROUP_ID = import.meta.env.PROD
+  ? "ait.v2.live.bb5b6ebb4a694614"
+  : "ait-ad-test-banner-id";
+export const INTERSTITIAL_AD_GROUP_ID = import.meta.env.PROD
+  ? "ait.v2.live.3e016592094a4a82"
+  : "ait-ad-test-interstitial-id";
 
 const LAST_SHOWN_KEY = "prepay:ads:lastInterstitial";
 const CAP_MS = 2 * 60 * 60 * 1000; // 2시간
