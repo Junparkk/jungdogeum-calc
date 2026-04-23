@@ -4,9 +4,9 @@
 // v2 (loadFullScreenAd)는 토스앱 5.247.0+ 필요해서 지원 기기가 좁음.
 //
 // 전면형 가드 (모두 AND):
-//  1. 의미있는 액션 2회 이상
+//  1. 의미있는 액션 2회 이상 (일정 추가 / 납부 추가 / 월 일괄 / 초기화)
 //  2. 마지막 노출 후 30분 이상
-//  3. 자연스러운 트리거 시점 (월 일괄/초기화/메뉴 닫힘)
+// → noteAction()이 호출될 때마다 자동으로 노출 시도.
 
 import {
   GoogleAdMob,
@@ -76,6 +76,8 @@ function preloadInterstitial() {
 
 export function noteAction() {
   actionCount += 1;
+  // 액션마다 노출 시도. 2회 이상 + 30분 캡 가드는 내부에서 알아서 거름.
+  void showInterstitialIfEligible();
 }
 
 async function getLastShown(): Promise<number> {

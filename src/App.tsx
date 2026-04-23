@@ -2,12 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { Payment, Schedule } from "@/lib/calc";
 import { calcCredit, daysBetween } from "@/lib/calc";
 import { clearState, loadState, saveState } from "@/lib/storage";
-import {
-  initAds,
-  isBannerSupported,
-  noteAction,
-  showInterstitialIfEligible,
-} from "@/lib/ads";
+import { initAds, isBannerSupported, noteAction } from "@/lib/ads";
 import { TopBar } from "@/components/TopBar";
 import { Hero } from "@/components/Hero";
 import { ScheduleCard } from "@/components/ScheduleCard";
@@ -171,8 +166,6 @@ function App() {
     );
     setPayIdCounter(counter);
     noteAction();
-    // 월 일괄 추가 = "큰 액션 마무리" 모먼트 → 광고 후보
-    void showInterstitialIfEligible();
   };
   const removePayment = (id: number) =>
     setPayments(payments.filter((p) => p.id !== id));
@@ -224,14 +217,6 @@ function App() {
     setPayIdCounter(1);
     clearState().catch(() => {});
     noteAction();
-    // 초기화 후 = 새 세션 시작 모먼트 → 광고 후보
-    void showInterstitialIfEligible();
-  };
-
-  const handleMenuClose = () => {
-    close();
-    // 메뉴 닫힘 = 의도적 깊은 진입 후 탈출 → 광고 후보
-    void showInterstitialIfEligible();
   };
 
   return (
@@ -438,7 +423,7 @@ function App() {
       />
       <MenuSheet
         open={sheet === "menu"}
-        onClose={handleMenuClose}
+        onClose={close}
         totals={totals}
         schedules={schedules}
         payments={payments}
